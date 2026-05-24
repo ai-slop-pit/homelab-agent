@@ -1,0 +1,41 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "disableAgentView": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash /opt/claude-agent/.claude/statusline.sh"
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Edit",
+      "Write",
+      "Read",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(ps *)",
+      "Bash(docker ps)",
+      "Bash(docker logs *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/opt/claude-agent/hooks/post-task.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
