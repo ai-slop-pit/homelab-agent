@@ -23,6 +23,9 @@
       "Bash(ps *)",
       "Bash(docker ps)",
       "Bash(docker logs *)"
+    ],
+    "deny": [
+      "WebFetch"
     ]
   },
   "hooks": {

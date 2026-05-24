@@ -1,96 +1,97 @@
-# /research Skill — Quick Reference
+# Research & Context Access Skill
 
-Offload research queries to Gemini to reduce Claude Code context token consumption.
+## How to Check Information
 
-## Usage
+### 1. Local Project Knowledge
+- **CLAUDE.md** — Project rules and architecture
+- **README** — Project overview
+- **docs/** — Detailed documentation
+- **Code files** — Read with `Read` tool
 
+**Usage**: Direct file reading when info is in the project.
+
+### 2. Git History & Changes
+- **git log** — See how things evolved
+- **git blame** — Who changed what
+- **git show** — Specific commit details
+
+**Usage**: Understand decisions, changes, and history.
+
+### 3. Agent Memory
+- **~/.claude/projects/*/memory/** — Project patterns and lessons
+- Persistent knowledge across sessions
+
+**Usage**: Recall patterns, lessons learned, system understanding.
+
+### 4. Web Research & External Context
+- **`gemini` command** — Web research, current information
+- Set: `export GEMINI_CLI_TRUST_WORKSPACE=true`
+
+**Usage**: Look up current facts, APIs, versions, external context
 ```bash
-/research <your research query>
+gemini "what's the latest Node.js LTS release"
 ```
 
-## Examples
+## How to Offload Context
 
-### Light Queries (instant)
+### 1. Persistent Sessions (tmux)
+- Run long tasks in background
+- Check progress anytime
+- Share output with user
+
+**Commands**:
 ```bash
-/research What is OAuth 2.0?
-/research Node.js best practices
-/research API rate limiting strategies
+tmux new-session -d -s <name> <command>
+tmux capture-pane -t <name> -p              # View output
+tmux kill-session -t <name>                 # Stop
 ```
 
-### Medium Queries (1-3 seconds)
+### 2. Agent State Queue
+- Register tasks in `.claude/agent-state.json`
+- Telegram bot can query/approve
+- Async task tracking
+
+### 3. File-Based Results
+- Save analysis to files
+- User reviews later
+- No blocking
+
+## How to Access Web
+
+### Direct Web Research
 ```bash
-/research Compare Redis vs Memcached
-/research Explain microservices architecture
-/research What are the OWASP top 10 security risks?
+gemini "your question"
 ```
 
-### Heavy Research (5-30 seconds)
-```bash
-/research Analyze current trends in LLM efficiency and cost optimization
-/research Comprehensive comparison of CSS-in-JS solutions
-/research Research the evolution of JavaScript async patterns
-```
+### Specific URL Content
+- Use `Read` tool if you have file path
+- Use `WebSearch` for web lookups
+- Cite sources in responses
 
-## Features
+## Text & Data Tasks
 
-✅ **Automatic complexity detection** — Routes to appropriate Gemini model  
-✅ **Context optimization** — Returns summaries, not raw data  
-✅ **Query logging** — All queries logged to `logs/research-<date>.log`  
-✅ **No API key needed** — Uses Gemini CLI with gcloud auth  
+### Process Text
+- **grep** — Search patterns
+- **sed/awk** — Text transformation
+- **Read/Write/Edit** — File manipulation
 
-## How Complexity is Detected
+### Code Analysis
+- **grep -r** — Find patterns across files
+- **find** — Locate files
+- **Read** — Understand code
 
-The skill automatically determines complexity based on:
+### Data Organization
+- Structured output to files
+- JSON for state
+- Logs for audit trails
 
-| Factor | Light | Medium | Heavy |
-|--------|-------|--------|-------|
-| **Length** | < 100 chars | 100-500 chars | > 500 chars |
-| **Keywords** | Basic lookup | compare, explain | analyze, research, comprehensive |
-| **Scope** | Single topic | Multiple topics | Multi-faceted analysis |
+## Quick Decision Tree
 
-## Token Savings
-
-Compared to asking Claude Code directly:
-- **Light**: 60-70% reduction
-- **Medium**: 40-50% reduction
-- **Heavy**: 80%+ reduction
-
-## How It Works
-
-1. You call `/research <query>`
-2. Script detects complexity level
-3. Routes to appropriate Gemini model via CLI
-4. Returns summarized response to Claude Code
-5. Query logged for pattern analysis
-
-## Models Used
-
-- **Gemini Flash** (default, fastest)
-- **Gemini Pro** (reasoning-heavy queries)
-- **Deep Research** (comprehensive synthesis)
-
-## Troubleshooting
-
-### "Gemini CLI unavailable"
-- Ensure you have `gemini` CLI installed: `which gemini`
-- Check authentication: `gcloud auth login`
-
-### Slow responses
-- Heavy research can take 30+ seconds
-- Light queries should return in < 2 seconds
-- Check your internet connection
-
-### No output
-- Run with `GEMINI_CLI_TRUST_WORKSPACE=true` (script does this automatically)
-
-## Configuration
-
-Edit `research.sh` to:
-- Change complexity thresholds
-- Modify routing logic
-- Adjust timeouts
-
-## See Also
-
-- [SKILL.md](SKILL.md) — Full skill documentation
-- [.learnings/research-skill.md](../../.learnings/research-skill.md) — Implementation notes
+**"I need to..."**
+- Know a project rule? → CLAUDE.md / docs/
+- Understand why something changed? → git log / git blame
+- Remember a pattern from before? → memory files
+- Check current web info? → `gemini "query"`
+- Run something long? → `tmux new-session -d -s name "command"`
+- Find code? → grep / Read
+- Save results for later? → Write to file, share path
