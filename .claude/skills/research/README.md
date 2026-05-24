@@ -1,97 +1,60 @@
 # Research & Context Access Skill
 
-## How to Check Information
+## Core: Gemini CLI for Web Research
 
-### 1. Local Project Knowledge
-- **CLAUDE.md** — Project rules and architecture
-- **README** — Project overview
-- **docs/** — Detailed documentation
-- **Code files** — Read with `Read` tool
+**Primary tool**: `gemini` command — Web research, current information, external context
 
-**Usage**: Direct file reading when info is in the project.
-
-### 2. Git History & Changes
-- **git log** — See how things evolved
-- **git blame** — Who changed what
-- **git show** — Specific commit details
-
-**Usage**: Understand decisions, changes, and history.
-
-### 3. Agent Memory
-- **~/.claude/projects/*/memory/** — Project patterns and lessons
-- Persistent knowledge across sessions
-
-**Usage**: Recall patterns, lessons learned, system understanding.
-
-### 4. Web Research & External Context
-- **`gemini` command** — Web research, current information
-- Set: `export GEMINI_CLI_TRUST_WORKSPACE=true`
-
-**Usage**: Look up current facts, APIs, versions, external context
-```bash
-gemini "what's the latest Node.js LTS release"
-```
-
-## How to Offload Context
-
-### 1. Persistent Sessions (tmux)
-- Run long tasks in background
-- Check progress anytime
-- Share output with user
-
-**Commands**:
-```bash
-tmux new-session -d -s <name> <command>
-tmux capture-pane -t <name> -p              # View output
-tmux kill-session -t <name>                 # Stop
-```
-
-### 2. Agent State Queue
-- Register tasks in `.claude/agent-state.json`
-- Telegram bot can query/approve
-- Async task tracking
-
-### 3. File-Based Results
-- Save analysis to files
-- User reviews later
-- No blocking
-
-## How to Access Web
-
-### Direct Web Research
 ```bash
 gemini "your question"
 ```
 
-### Specific URL Content
-- Use `Read` tool if you have file path
-- Use `WebSearch` for web lookups
-- Cite sources in responses
+## When to Use Gemini
 
-## Text & Data Tasks
+- Look up current facts, APIs, versions
+- Research topics with recent updates
+- Get external context and perspectives
+- Access information beyond local knowledge
+- Analyze web content
 
-### Process Text
-- **grep** — Search patterns
-- **sed/awk** — Text transformation
-- **Read/Write/Edit** — File manipulation
+## Examples
 
-### Code Analysis
-- **grep -r** — Find patterns across files
-- **find** — Locate files
-- **Read** — Understand code
+```bash
+# Current information
+gemini "what is the latest Node.js LTS version"
 
-### Data Organization
-- Structured output to files
-- JSON for state
-- Logs for audit trails
+# External context
+gemini "how does tmux differ from screen"
 
-## Quick Decision Tree
+# Recent updates
+gemini "Kubernetes 1.31 new features"
 
-**"I need to..."**
-- Know a project rule? → CLAUDE.md / docs/
-- Understand why something changed? → git log / git blame
-- Remember a pattern from before? → memory files
-- Check current web info? → `gemini "query"`
-- Run something long? → `tmux new-session -d -s name "command"`
-- Find code? → grep / Read
-- Save results for later? → Write to file, share path
+# API documentation
+gemini "Claude API prompt caching documentation"
+
+# Best practices
+gemini "production deployment best practices for Go"
+```
+
+## How Agent Uses It
+
+Whenever needing external information:
+1. Recognize info is beyond local knowledge
+2. Call `gemini "question"`
+3. Get web-powered answer
+4. Incorporate into response
+
+**Organic usage** — not forced, just when genuinely needed.
+
+## Setup
+
+Ensure gemini CLI works:
+```bash
+gemini "test query"
+# If trust error, use:
+export GEMINI_CLI_TRUST_WORKSPACE=true
+gemini "query"
+```
+
+---
+
+**That's it.** Gemini is the external context tool. Use it when you need current information beyond what's local.

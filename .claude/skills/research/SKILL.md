@@ -1,43 +1,32 @@
-# Skill: Information Access & Context Offload
+# Skill: Gemini CLI — Web Research & External Context
 
 ## Overview
-Guide on how to check information, offload context, access web, and handle text tasks. Not an executable tool—explains the methods available.
+Use Gemini CLI for web research and accessing current external context. Simple, direct tool for getting information beyond local knowledge.
 
-## What This Covers
-
-1. **Checking Information**
-   - Local project docs (CLAUDE.md, code)
-   - Git history
-   - Agent memory (patterns, lessons)
-   - Web research (gemini CLI)
-
-2. **Offloading Context**
-   - Persistent sessions (tmux)
-   - Agent state queue
-   - File-based results
-
-3. **Web Access**
-   - Direct web research via gemini
-   - URL content retrieval
-   - Source citation
-
-4. **Text & Data Tasks**
-   - Text search/transform (grep, sed, awk)
-   - Code analysis (find, grep, Read)
-   - Data organization (structured output)
+## Core Purpose
+- Web research
+- Current facts and updates
+- External context
+- Information offload to web-powered LLM
 
 ## Usage
 
-Agent uses this skill by:
-- Knowing what methods are available
-- Choosing the right tool for the task
-- Combining sources when appropriate
-- No wrapper invocation needed
+```bash
+gemini "<your question>"
+```
 
-## Tools Referenced
-- `gemini` — Web research
-- `tmux` — Persistent sessions
-- `grep/find` — Text/code search
-- `Read/Write` — File access
-- `git` — History
-- Memory files — Project context
+## When to Use
+- Need current/recent information
+- Looking up external APIs or tools
+- Getting perspectives beyond local knowledge
+- Need context that's not in project/memory
+
+## That's It
+No wrapper, no complexity. Just:
+```bash
+gemini "what do you need to know"
+```
+
+---
+
+**Primary research tool** — Everything external goes through Gemini CLI.
