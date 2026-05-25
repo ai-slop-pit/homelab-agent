@@ -31,7 +31,7 @@ This happens **during normal work**, not as a separate process.
 - **Primary**: Claude Code CLI (power user, full autonomy, drives learning loop)
 - **Secondary**: Telegram bot (task submission, approvals, passive notifications)
 - **Tertiary**: Background monitors (feed signals → trigger proactive reasoning)
-- **Memory**: `.learnings/MEMORY.md` (persistent patterns, lessons, heuristics)
+- **Memory**: `.claude/memory/MEMORY.md` (persistent patterns, lessons, heuristics)
 - **State**: `.claude/agent-state.json` (task queue, results, pending evolution)
 - **Skills**: `.claude/skills/*/` (growing toolkit, version-controlled, discovered autonomously)
 
@@ -40,7 +40,7 @@ This happens **during normal work**, not as a separate process.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │           UNIFIED SUPER AGENT BRAIN                        │
-│  • Persistent identity: .learnings/MEMORY.md (evolving)   │
+│  • Persistent identity: .claude/memory/MEMORY.md (evolving) │
 │  • Shared state: .claude/agent-state.json (async queue)   │
 │  • Skills library: .claude/skills/* (growing toolkit)      │
 │  • Reasoning loop: continuous + reactive + proactive       │
@@ -73,7 +73,7 @@ Ask automatically after every task:
 - **"Is this a one-off or a pattern?"** (e.g., "torrent crashed" → app-health pattern)
 - **"Did I solve a generic problem?"** → Extract the problem class
 - **"Could this be a reusable skill?"** → Identify scope, triggers, procedure
-- **"What did I learn about the system?"** → Update `.learnings/MEMORY.md`
+- **"What did I learn about the system?"** → Update `.claude/memory/MEMORY.md`
 
 ### **Phase 3: Propose Evolution**
 If a generic problem was found:
@@ -149,10 +149,9 @@ Treat setup tasks as **knowledge-capture opportunities**, not just one-offs:
 
 ## Before Every Task
 1. **Check artifacts**: Did this domain get set up before? Load `.claude/setup-artifacts/<domain>/`
-2. **Load memory**: Read `.learnings/MEMORY.md` for context, patterns, past solutions
+2. **Load memory**: Read `.claude/memory/MEMORY.md` for context, patterns, past solutions
 3. **Check state**: `.claude/agent-state.json` for task details and dependencies
-4. **Scan skills**: What's available in `.claude/skills/`? Are any relevant?
-5. **Plan reflection**: "What could I learn from this task?"
+4. **Plan reflection**: "What could I learn from this task?"
 
 ## During Every Task
 1. **Instrument execution**: Log (State, Action, Observation) tuples
@@ -169,8 +168,8 @@ Treat setup tasks as **knowledge-capture opportunities**, not just one-offs:
    - Memory update needed? ✓/✗
 3. **Evolve**:
    - If new skill: draft SKILL.md template, propose to user
-   - If pattern: update `.learnings/MEMORY.md` with lesson
-   - If memory gap: document discovery (e.g., "User always disables X on weekends")
+   - If pattern: Update memory `.claude/memory/` with lesson
+   - If memory gap: Document discovery in memory
 4. **Log learning**: Record in `logs/<date>.log` + summarize for user
 
 ## Proactive Monitoring (Parallel Track)
@@ -184,14 +183,7 @@ Issue alerts only when necessary. Most observations go into `.learnings/` for fu
 
 ## Skills Framework: Auto-Evolving Toolkit
 
-Skills are **discovered and grown through work**. Each skill is a modular, version-controlled artifact:
-
-**Skill Structure** (stored in `.claude/skills/<skill-name>/`):
-- **SKILL.md**: Formal interface (triggers, scope, inputs, outputs, constraints)
-- **README.md**: Implementation, heuristics, learned optimizations
-- **Code**: Executable bash/python
-- **SPEC.json**: Machine-readable definition (for agents to reason about)
-- **performance.json**: Metrics, success rates, evolution history
+Skills are **discovered and grown through work**. When agent identifies a reusable pattern, it proposes a new skill. Skills live in `.claude/skills/` and evolve based on execution feedback.
 
 ### Skill Lifecycle (From Task to Deployed Skill)
 
@@ -298,7 +290,7 @@ Every task is a learning opportunity:
 - Run on cron/schedule (e.g., every 15 min for health, every hour for analysis)
 - Poll logs, metrics, filesystem state
 - Detect anomalies → flag via Telegram or update state queue
-- Feed learnings back into `.learnings/MEMORY.md`
+- Feed learnings back into `.claude/memory/MEMORY.md`
 
 ## Proxmox Infrastructure
 

@@ -1,7 +1,6 @@
 node_modules/
 .env
 logs/
-.learnings/
 *.log
 
 # Ephemeral state & session files
