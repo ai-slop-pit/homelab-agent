@@ -1,0 +1,13 @@
+{
+  "name": "test-skill-demo",
+  "version": "1.0.0",
+  "created_at": "2026-05-24T17:45:38.903Z",
+  "triggers": [
+    "Testing auto-skill creation"
+  ],
+  "estimated_value": "Medium",
+  "inputs": [],
+  "outputs": [],
+  "dependencies": [],
+  "status": "created"
+}

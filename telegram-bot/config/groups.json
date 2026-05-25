@@ -1,0 +1,23 @@
+{
+  "groups": [
+    {
+      "id": -1003951507653,
+      "name": "Va Hime",
+      "owners": [8176772709],
+      "approvers": [8176772709],
+      "type": "forum",
+      "active": true
+    }
+  ],
+  "users": {
+    "8176772709": {
+      "name": "Audrius",
+      "role": "admin",
+      "permissions": ["owner", "approver"]
+    }
+  },
+  "settings": {
+    "defaultApprovalRequired": false,
+    "logLevel": "info"
+  }
+}

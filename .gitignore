@@ -3,3 +3,18 @@ node_modules/
 logs/
 .learnings/
 *.log
+
+# Ephemeral state & session files
+.claude/current-session.json
+.claude/execution-traces.jsonl
+.claude/manager-state.json
+.claude/agent-state.json
+.claude/proposal*.jsonl
+.claude/proposal*.json
+.claude/settings.local.json
+
+# Dev artifacts
+Untitled
+.config/
+telegram-config.json
+.claude/skills-performance.json

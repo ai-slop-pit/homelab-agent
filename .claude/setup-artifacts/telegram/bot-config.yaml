@@ -1,0 +1,53 @@
+# Telegram Bot Setup Artifacts
+# Captured: 2026-05-25
+# Source: telegram-config.json, telegram-bot.js
+#
+# ⚠️  SECURITY: This file contains NO secrets (safe to commit to git)
+# Bot token is stored as environment variable — agent will use: $BOT_TOKEN
+# To retrieve: bash will expand $BOT_TOKEN when running commands
+
+bot:
+  token_stored_as: "env var $BOT_TOKEN"
+  token_used_in: "process.env.BOT_TOKEN (Node.js) or $BOT_TOKEN (Bash)"
+  token_reference: "BOT_TOKEN"
+  library: "Telegraf"
+  setup_location: "telegram-bot.js"
+
+groups:
+  - id: -1003951507653
+    name: "Va Hime"
+    type: "forum"
+    purpose: "Main approval/notification channel"
+    active: true
+    created_from: ".claude/telegram-config.json"
+
+users:
+  admin:
+    id: 8176772709
+    name: "Audrius"
+    role: "admin"
+    permissions: ["owner", "approver"]
+
+configuration:
+  config_file: ".claude/telegram-config.json"
+  state_queue: ".claude/agent-state.json"
+  session_file: ".claude/current-session.json"
+  threads_dir: "/opt/claude-agent/threads"
+  approval_handler: "ApprovalHandler (approval-handler.js)"
+  batch_handler: "telegram-batch-handler.js"
+
+services:
+  - send-telegram.js: Send messages to group
+  - create-topic.js: Create topics/threads
+  - delete-topic.js: Delete topics
+  - agent-propose.js: Proposal logic
+
+setup_session: "telegram-bot-multipart-2026-05"
+last_verified: 2026-05-25
+notes: |
+  - Bot token is stored as env var, not in repo (security)
+  - Group ID -1003951507653 is main approval/notification channel
+  - User ID 8176772709 (Audrius) is admin/approver
+  - All bot state persisted in .claude/telegram-config.json
+  - Sessions tracked separately in current-session.json
+  - Approval workflow: proposal → batch → user approval → execution

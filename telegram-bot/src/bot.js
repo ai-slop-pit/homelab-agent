@@ -3,17 +3,16 @@ const { spawnSync } = require('child_process');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const propose = require('./agent-propose');
-const { batcher, handleBatchApproval, checkAndSendBatch } = require('./telegram-batch-handler');
-const { SkillCreator } = require('./skill-creator');
-const { TopicManager } = require('./topic-manager');
-const { ApprovalHandler } = require('./approval-handler');
+const propose = require('/opt/claude-agent/agent-propose');
+const { batcher, handleBatchApproval, checkAndSendBatch } = require('/opt/claude-agent/telegram-batch-handler');
+const { SkillCreator } = require('/opt/claude-agent/skill-creator');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const BOT_DIR = path.dirname(path.dirname(__filename)); // /opt/claude-agent/telegram-bot
 const THREADS_DIR = '/opt/claude-agent/threads';
 const AGENT_STATE = '/opt/claude-agent/.claude/agent-state.json';
-const CONFIG_FILE = '/opt/claude-agent/.claude/telegram-config.json';
-const SESSION_FILE = '/opt/claude-agent/.claude/current-session.json';
+const CONFIG_FILE = path.join(BOT_DIR, 'config', 'groups.json');
+const SESSION_FILE = path.join(BOT_DIR, 'sessions', 'current-session.json');
 
 // ===== Session Management =====
 function loadSession() {
@@ -86,12 +85,6 @@ function saveConfig() {
 
 // Load config at startup
 loadConfig();
-
-// Initialize topic manager
-const topicManager = new TopicManager();
-
-// Initialize approval handler
-const approvalHandler = new ApprovalHandler();
 
 // Fallback to .env for legacy compatibility
 const GROUP_ID = parseInt(process.env.GROUP_ID || '0');
@@ -197,85 +190,7 @@ function isDestructiveTask(task) {
   return destructiveKeywords.some(kw => task.toLowerCase().includes(kw));
 }
 
-// ===== Direct Claude Integration with Streaming =====
-function callClaudeStreaming(userMessage, conversationHistory = [], onChunk = null) {
-  return new Promise((resolve, reject) => {
-    try {
-      const { spawn } = require('child_process');
-
-      // Build prompt with conversation context
-      let prompt = '';
-      if (conversationHistory.length > 0) {
-        for (const msg of conversationHistory) {
-          prompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
-        }
-      }
-      prompt += `User: ${userMessage}`;
-
-      // Call Claude CLI from /opt/claude-agent to load CLAUDE.md context
-      const proc = spawn('/usr/bin/claude', ['-p', prompt], {
-        cwd: '/opt/claude-agent',
-        env: { ...process.env, HOME: '/home/claude' }
-      });
-
-      let output = '';
-      let lastUpdate = Date.now();
-      const UPDATE_INTERVAL = 500; // ms between updates to Telegram
-
-      proc.stdout.on('data', (data) => {
-        output += data.toString();
-
-        // Send incremental updates to Telegram (throttled)
-        const now = Date.now();
-        if (onChunk && now - lastUpdate > UPDATE_INTERVAL) {
-          onChunk(output);
-          lastUpdate = now;
-        }
-      });
-
-      proc.stderr.on('data', (data) => {
-        console.error('[CLAUDE] Stderr:', data.toString());
-      });
-
-      proc.on('error', (err) => {
-        console.error('[CLAUDE] Spawn error:', err.message);
-        reject(err);
-      });
-
-      proc.on('close', (code) => {
-        if (code !== 0) {
-          console.error('[CLAUDE] Exit code:', code);
-          reject(new Error(`Claude exited with code ${code}`));
-          return;
-        }
-
-        const finalOutput = output.trim();
-        if (!finalOutput) {
-          console.error('[CLAUDE] Empty response');
-          reject(new Error('Empty response from Claude'));
-          return;
-        }
-
-        // Send final update
-        if (onChunk) {
-          onChunk(finalOutput);
-        }
-        resolve(finalOutput);
-      });
-
-      // Timeout after 95 seconds
-      setTimeout(() => {
-        proc.kill();
-        reject(new Error('Claude CLI timeout'));
-      }, 95000);
-    } catch (err) {
-      console.error('[CLAUDE] Exception:', err.message);
-      reject(err);
-    }
-  });
-}
-
-// Fallback sync version for backwards compatibility
+// ===== Direct Claude Integration =====
 function callClaude(userMessage, conversationHistory = []) {
   try {
     const { spawnSync } = require('child_process');
@@ -287,32 +202,24 @@ function callClaude(userMessage, conversationHistory = []) {
         prompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
       }
     }
-    prompt += `User: ${userMessage}`;
+    prompt += userMessage;
 
-    // Call Claude CLI from /opt/claude-agent to load CLAUDE.md context
-    const result = spawnSync('/usr/bin/claude', ['-p', prompt], {
-      encoding: 'utf8',
-      timeout: 90000,
-      stdio: ['pipe', 'pipe', 'pipe'],
+    // Call Claude from main agent directory (inherits CLAUDE.md context)
+    const result = spawnSync('claude', ['-p', prompt], {
       cwd: '/opt/claude-agent',
-      env: { ...process.env, HOME: '/home/claude' }
+      encoding: 'utf8',
+      timeout: 30000,
+      stdio: ['pipe', 'pipe', 'pipe']
     });
 
     if (result.error) {
-      console.error('[CLAUDE] Spawn error:', result.error.message);
-      return null;
-    }
-
-    if (result.status !== 0) {
-      console.error('[CLAUDE] Exit code:', result.status);
-      console.error('[CLAUDE] Stderr:', result.stderr);
-      console.error('[CLAUDE] Stdout:', result.stdout?.slice(0, 200));
+      console.error('[CLAUDE] Error:', result.error.message);
       return null;
     }
 
     const output = result.stdout?.trim();
     if (!output) {
-      console.error('[CLAUDE] Empty response from claude CLI');
+      console.error('[CLAUDE] Empty response');
       return null;
     }
 
@@ -324,6 +231,67 @@ function callClaude(userMessage, conversationHistory = []) {
 }
 
 const SAFE_PREFIX = 'You are a helpful home assistant. Answer questions about home status, reminders, schedules, and media. Do NOT run system commands, modify files, SSH anywhere, or perform destructive actions. Be friendly and concise.\n\nQuestion: ';
+
+// ===== Approval Handling =====
+function parseApprovalRequest(response) {
+  // Check if response indicates a command needs approval
+  if (!response.includes('needs your approval') && !response.includes('needs approval')) {
+    return { needsApproval: false };
+  }
+
+  // Extract command from backticks
+  const cmdMatch = response.match(/`([^`]+)`/);
+  if (cmdMatch) {
+    return {
+      needsApproval: true,
+      command: cmdMatch[1],
+      message: response
+    };
+  }
+
+  return { needsApproval: false };
+}
+
+async function sendApprovalRequest(ctx, command, message) {
+  const markup = {
+    inline_keyboard: [
+      [
+        { text: '✅ Approve', callback_data: `approve:${Buffer.from(command).toString('base64')}` },
+        { text: '❌ Reject', callback_data: 'reject' }
+      ]
+    ]
+  };
+
+  return ctx.reply(
+    `⚠️ Command needs approval:\n\n\`${command}\`\n\nAllow this?`,
+    { reply_markup: markup }
+  );
+}
+
+function executeCommand(command) {
+  try {
+    console.log(`[EXEC] Running: ${command}`);
+    const result = spawnSync('bash', ['-c', command], {
+      encoding: 'utf8',
+      timeout: 30000,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    if (result.error) {
+      console.error('[EXEC] Error:', result.error.message);
+      return { success: false, error: result.error.message };
+    }
+
+    return {
+      success: true,
+      output: result.stdout || result.stderr,
+      code: result.status
+    };
+  } catch (err) {
+    console.error('[EXEC] Exception:', err.message);
+    return { success: false, error: err.message };
+  }
+}
 
 // ===== Global error handler =====
 bot.catch((err, ctx) => {
@@ -516,133 +484,22 @@ bot.command('show', (ctx) => {
 
 bot.command('setup', async (ctx) => {
   if (!isOwner(ctx.from?.id)) return ctx.reply('Owner only.');
-  await ctx.reply('🤖 Creating system-proposals topic...');
-
-  const proposalResults = await topicManager.createProposalTopics(bot, GROUP_ID);
-  const proposalStatus = proposalResults.map(r =>
-    r.success ? `${r.topicName} ✅` : `${r.topicName} ❌`
-  );
-
-  await ctx.reply(`✨ Setup complete!\n\n${proposalStatus.join('\n')}`);
-});
-
-// ===== Topic Management Commands =====
-bot.command('createtopics', async (ctx) => {
-  if (!isOwner(ctx.from?.id)) return ctx.reply('Owner only.');
-
-  await ctx.reply('🤖 Creating proposal topics...');
-  const results = await topicManager.createProposalTopics(bot, GROUP_ID);
-
-  const summary = results.map(r => {
-    if (r.success) {
-      return `✅ ${r.topicName} (ID: ${r.topicId})`;
-    } else {
-      return `❌ ${r.topicName}: ${r.error}`;
-    }
-  }).join('\n');
-
-  await ctx.reply(`📌 Topic Creation Results\n\n${summary}`);
-});
-
-bot.command('listtopics', async (ctx) => {
-  const topics = topicManager.listTopics();
-
-  if (topics.length === 0) {
-    return ctx.reply('No topics configured yet. Use /createtopics');
+  await ctx.reply('Setting up group topics...');
+  const topics = ['homelab', 'general', 'media', 'dev'];
+  const created = [];
+  for (const name of topics) {
+    try {
+      await bot.telegram.callApi('createForumTopic', { chat_id: GROUP_ID, name });
+      created.push(name);
+    } catch(e) { created.push(name + ' (exists)'); }
   }
-
-  let msg = '📋 **Configured Topics**\n\n';
-  for (const topic of topics) {
-    msg += `🔹 **${topic.name}** (ID: ${topic.id})\n`;
-    msg += `   Created: ${topic.created}\n`;
-    msg += `   ${topic.description}\n\n`;
-  }
-
-  ctx.reply(msg);
-});
-
-bot.command('addtopic', async (ctx) => {
-  if (!isOwner(ctx.from?.id)) return ctx.reply('Owner only.');
-
-  const args = ctx.message.text.split(' ').slice(1);
-  if (args.length < 1) return ctx.reply('Usage: /addtopic <name> [description...]');
-
-  const topicName = args[0];
-  const description = args.slice(1).join(' ') || '';
-
-  const result = await topicManager.createTopic(bot, GROUP_ID, topicName, description);
-
-  if (result.success) {
-    ctx.reply(`✅ Topic "${topicName}" created (ID: ${result.topicId})`);
-  } else {
-    ctx.reply(`❌ Failed to create topic: ${result.error}`);
-  }
-});
-
-bot.command('cleanup', async (ctx) => {
-  if (!isOwner(ctx.from?.id)) return ctx.reply('Owner only.');
-
-  await ctx.reply('🧹 Deleting old proposal topics...');
-
-  const oldTopics = ['proposals-skills', 'proposals-automations', 'proposals-system', 'proposals-learning'];
-  const results = [];
-
-  for (const topicName of oldTopics) {
-    const topicId = topicManager.getTopicId(topicName);
-    if (topicId) {
-      const result = await topicManager.deleteTopic(bot, GROUP_ID, topicId);
-      if (result.success) {
-        topicManager.removeTopic(topicName);
-        results.push(`✅ Deleted ${topicName}`);
-      } else {
-        results.push(`❌ ${topicName}: ${result.error}`);
-      }
-    } else {
-      results.push(`⏭️ ${topicName}: Not found`);
-    }
-  }
-
-  ctx.reply(`🧹 **Cleanup Complete**\n\n${results.join('\n')}`);
+  await ctx.reply('Topics: ' + created.join(', '));
 });
 
 bot.command('new', async (ctx) => {
   const threadId = ctx.message?.message_thread_id || '0';
   fs.rmSync(path.join(getThreadDir(threadId), '.claude'), { recursive: true, force: true });
   ctx.reply('Fresh session started.');
-});
-
-// ===== Approval Display Command =====
-bot.command('approvals', async (ctx) => {
-  const pending = approvalHandler.getPendingApprovals();
-
-  if (pending.length === 0) {
-    ctx.reply('📭 No pending approvals');
-    return;
-  }
-
-  let response = `🔒 **Pending Approvals (${pending.length})**\n\n`;
-
-  for (const approval of pending) {
-    response += approvalHandler.formatApproval(approval) + '\n\n';
-
-    // Create inline buttons for each approval
-    const keyboard = {
-      inline_keyboard: [
-        [
-          {
-            text: '✅ Approve',
-            callback_data: `approve_action:${approval.id}`,
-          },
-          {
-            text: '❌ Reject',
-            callback_data: `reject_action:${approval.id}`,
-          },
-        ],
-      ],
-    };
-
-    await ctx.replyWithMarkdown(approvalHandler.formatApproval(approval), keyboard);
-  }
 });
 
 // ===== UNIVERSAL CATCH-ALL (pass through) =====
@@ -689,89 +546,84 @@ bot.on('text', async (ctx) => {
     await ctx.sendChatAction('typing');
     console.log('[TEXT] Sent typing indicator');
 
-    // Call Claude with streaming updates
-    console.log(`[TEXT-CLAUDE] Calling with ${conversationHistory.length} prior messages`);
+    // Call Claude from main agent directory
+    console.log(`[CLAUDE] Calling from /opt/claude-agent with ${conversationHistory.length} prior messages`);
+    const response = callClaude(task, conversationHistory);
 
-    let sentMessage = null;
-    let lastMessageText = '';
-    let updateCount = 0;
-
-    // Stream handler updates message as response arrives
-    const onChunk = async (chunk) => {
-      try {
-        const truncated = chunk.length > 4096 ? chunk.slice(0, 4090) + '...' : chunk;
-
-        // First message or update every ~500ms
-        if (!sentMessage) {
-          sentMessage = await ctx.reply('🤔 ' + truncated);
-          lastMessageText = truncated;
-          console.log('[TEXT] Initial response sent');
-        } else if (truncated !== lastMessageText && chunk.length % 50 === 0) {
-          // Update message every 50 chars (throttled)
-          try {
-            await ctx.telegram.editMessageText(
-              ctx.chat.id,
-              sentMessage.message_id,
-              undefined,
-              '⏳ ' + truncated
-            );
-            lastMessageText = truncated;
-            updateCount++;
-          } catch (e) {
-            // Ignore "message is not modified" errors
-            if (!e.message?.includes('not modified')) {
-              console.error('[TEXT] Edit error:', e.message);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[TEXT-STREAM] Chunk error:', err.message);
-      }
-    };
-
-    try {
-      const response = await callClaudeStreaming(task, conversationHistory, onChunk);
-
-      console.log(`[TEXT-CLAUDE] Got full response (${updateCount} updates)`);
+    if (response) {
+      console.log(`[CLAUDE] Got response: ${response.slice(0, 100)}`);
 
       // Add assistant response to session
       session = addMessageToSession(session, 'assistant', response);
       saveSession(session);
       console.log(`[SESSION] Added response to session (total: ${session.messages.length})`);
 
-      // Final message update with checkmark
+      // Send response to Telegram
       const truncated = response.length > 4096
         ? response.slice(0, 4090) + '...'
         : response;
-
-      if (sentMessage) {
-        await ctx.telegram.editMessageText(
-          ctx.chat.id,
-          sentMessage.message_id,
-          undefined,
-          '✅ ' + truncated
-        );
-      } else {
-        await ctx.reply('✅ ' + truncated);
-      }
-      console.log('[TEXT] Response complete');
-    } catch (err) {
-      console.error('[TEXT-CLAUDE] Stream error:', err.message);
-      if (sentMessage) {
-        await ctx.telegram.editMessageText(
-          ctx.chat.id,
-          sentMessage.message_id,
-          undefined,
-          `❌ Error: ${err.message}`
-        );
-      } else {
-        await ctx.reply(`❌ Error: ${err.message}`);
-      }
+      await ctx.reply(truncated);
+      console.log('[TEXT] Response sent');
+    } else {
+      console.error('[CLAUDE] No response');
+      await ctx.reply('❌ Error: Could not get response from Claude');
     }
   } catch (err) {
     console.error('[TEXT] Exception:', err.message);
     await ctx.reply('❌ Error processing your message');
   }
+});
+
+// ===== Command Approval Handlers =====
+bot.action(/approve:(.+)/, async (ctx) => {
+  const encodedCommand = ctx.match[1];
+  const command = Buffer.from(encodedCommand, 'base64').toString('utf8');
+
+  if (!global.pendingCommand) {
+    await ctx.answerCbQuery('No pending command');
+    return;
+  }
+
+  if (global.pendingCommand.command !== command) {
+    await ctx.answerCbQuery('Command mismatch');
+    return;
+  }
+
+  console.log(`[APPROVAL] User approved: ${command}`);
+
+  try {
+    // Execute the command
+    const result = executeCommand(command);
+
+    if (result.success) {
+      const output = result.output.slice(0, 4000) || '(no output)';
+      await ctx.editMessageText(
+        `✅ Executed:\n\`${command}\`\n\nResult:\n\`\`\`\n${output}\n\`\`\``
+      );
+
+      // Add to session
+      let session = loadSession();
+      if (session) {
+        session = addMessageToSession(session, 'assistant', `Command executed:\n\`${command}\`\n\nResult:\n${output}`);
+        saveSession(session);
+      }
+    } else {
+      await ctx.editMessageText(`❌ Error:\n${result.error}`);
+    }
+
+    global.pendingCommand = null;
+    await ctx.answerCbQuery();
+  } catch (err) {
+    console.error('[APPROVAL] Exception:', err.message);
+    await ctx.answerCbQuery('Error executing command');
+  }
+});
+
+bot.action('reject', async (ctx) => {
+  console.log('[APPROVAL] User rejected');
+  global.pendingCommand = null;
+  await ctx.editMessageText('❌ Command rejected');
+  await ctx.answerCbQuery('Command rejected');
 });
 
 // ===== Batch Approval Handlers =====
@@ -816,37 +668,6 @@ bot.action(/reject:(.+)/, async (ctx) => {
     await bot.telegram.sendMessage(GROUP_ID, `⛔ Proposal \`${proposalId}\` rejected by ${rejectorName}.`);
   } else {
     ctx.answerCbQuery('Proposal not found');
-  }
-});
-
-// ===== CLI Approval Handlers =====
-bot.action(/approve_action:(.+)/, async (ctx) => {
-  const approvalId = ctx.match[1];
-  const approverName = ctx.from.first_name;
-
-  const result = approvalHandler.respondToApproval(approvalId, 'approved');
-
-  if (result.success) {
-    ctx.answerCbQuery(`✅ Approval granted`);
-    await ctx.editMessageText(`${ctx.message.text}\n\n✅ **APPROVED** by ${approverName}`);
-    await bot.telegram.sendMessage(GROUP_ID, `🔓 CLI action approved by ${approverName}`);
-  } else {
-    ctx.answerCbQuery(`❌ ${result.error}`);
-  }
-});
-
-bot.action(/reject_action:(.+)/, async (ctx) => {
-  const approvalId = ctx.match[1];
-  const rejectorName = ctx.from.first_name;
-
-  const result = approvalHandler.respondToApproval(approvalId, 'rejected', `Rejected by ${rejectorName}`);
-
-  if (result.success) {
-    ctx.answerCbQuery(`❌ Approval rejected`);
-    await ctx.editMessageText(`${ctx.message.text}\n\n❌ **REJECTED** by ${rejectorName}`);
-    await bot.telegram.sendMessage(GROUP_ID, `🔒 CLI action rejected by ${rejectorName}`);
-  } else {
-    ctx.answerCbQuery(`❌ ${result.error}`);
   }
 });
 
@@ -923,74 +744,26 @@ app.post('/telegram', async (req, res) => {
           // Send "typing" indicator
           await bot.telegram.sendChatAction(chatId, 'typing');
 
-          // Call Claude with streaming
+          // Call Claude directly
           console.log(`[CLAUDE] Calling with context: ${conversationHistory.length} prior messages`);
+          const response = callClaude(text, conversationHistory);
 
-          let sentMessage = null;
-          let lastMessageText = '';
-          let updateCount = 0;
-
-          const onChunk = async (chunk) => {
-            try {
-              const truncated = chunk.length > 4096 ? chunk.slice(0, 4090) + '...' : chunk;
-
-              if (!sentMessage) {
-                sentMessage = await bot.telegram.sendMessage(chatId, '🤔 ' + truncated);
-                lastMessageText = truncated;
-              } else if (truncated !== lastMessageText && chunk.length % 50 === 0) {
-                try {
-                  await bot.telegram.editMessageText(
-                    chatId,
-                    sentMessage.message_id,
-                    undefined,
-                    '⏳ ' + truncated
-                  );
-                  lastMessageText = truncated;
-                  updateCount++;
-                } catch (e) {
-                  if (!e.message?.includes('not modified')) {
-                    console.error('[WEBHOOK-STREAM] Edit error:', e.message);
-                  }
-                }
-              }
-            } catch (err) {
-              console.error('[WEBHOOK-STREAM] Chunk error:', err.message);
-            }
-          };
-
-          try {
-            const response = await callClaudeStreaming(text, conversationHistory, onChunk);
+          if (response) {
+            console.log(`[CLAUDE] Got response: ${response.slice(0, 100)}`);
 
             // Add assistant response to session
             session = addMessageToSession(session, 'assistant', response);
             saveSession(session);
+            console.log(`[WEBHOOK-SESSION] Added response to session (total: ${session.messages.length})`);
 
+            // Send response to Telegram
             const truncated = response.length > 4096
               ? response.slice(0, 4090) + '...'
               : response;
-
-            if (sentMessage) {
-              await bot.telegram.editMessageText(
-                chatId,
-                sentMessage.message_id,
-                undefined,
-                '✅ ' + truncated
-              );
-            } else {
-              await bot.telegram.sendMessage(chatId, '✅ ' + truncated);
-            }
-          } catch (err) {
-            console.error('[WEBHOOK-STREAM] Error:', err.message);
-            if (sentMessage) {
-              await bot.telegram.editMessageText(
-                chatId,
-                sentMessage.message_id,
-                undefined,
-                `❌ Error: ${err.message}`
-              );
-            } else {
-              await bot.telegram.sendMessage(chatId, `❌ Error: ${err.message}`);
-            }
+            await bot.telegram.sendMessage(chatId, truncated);
+          } else {
+            console.error('[CLAUDE] No response received');
+            await bot.telegram.sendMessage(chatId, '❌ Error: Could not get response from Claude');
           }
         }
       } else {
