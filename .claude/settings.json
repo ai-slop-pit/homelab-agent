@@ -126,7 +126,10 @@
       "Bash(which nvim)",
       "Bash(rm ~/.local/share/nvim/*)",
       "Bash(rm -rf ~/.local/share/nvim/*)",
-      "Bash(rm -rf ~/.cache/nvim*)"
+      "Bash(rm -rf ~/.cache/nvim*)",
+      "Bash(rm /opt/claude-agent*)",
+      "Bash(rm -f /opt/claude-agent*)",
+      "Bash(rm -rf /opt/claude-agent*)"
     ],
     "deny": [
       "WebFetch",
