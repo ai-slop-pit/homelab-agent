@@ -3,11 +3,11 @@ const { spawnSync } = require('child_process');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const propose = require('./agent-propose');
-const { batcher, handleBatchApproval, checkAndSendBatch } = require('./telegram-batch-handler');
-const { SkillCreator } = require('./skill-creator');
-const { TopicManager } = require('./topic-manager');
-const { ApprovalHandler } = require('./approval-handler');
+const propose = require('../core/proposer');
+const { batcher, handleBatchApproval, checkAndSendBatch } = require('./batch-handler');
+const { SkillCreator } = require('../skills/skill-creator');
+const { TopicManager } = require('../utils/topic-manager');
+const { ApprovalHandler } = require('../handlers/approval-handler');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const THREADS_DIR = '/opt/claude-agent/threads';

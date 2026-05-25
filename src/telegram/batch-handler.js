@@ -1,9 +1,9 @@
 // Telegram Batch Handler - integrates ProposalBatcher with telegram-bot
 // Handles sending batch messages and processing approvals
 
-const { ProposalBatcher } = require('./proposal-batcher');
-const { TopicManager } = require('./topic-manager');
-const propose = require('./agent-propose');
+const { ProposalBatcher } = require('../core/proposal-batcher');
+const { TopicManager } = require('../utils/topic-manager');
+const propose = require('../core/proposer');
 
 const batcher = new ProposalBatcher();
 const topicManager = new TopicManager();

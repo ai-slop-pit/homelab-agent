@@ -4,7 +4,7 @@
  * Usage: node request-approval.js "delete-topics" "Delete old proposal topics?" ["proposals-skills", "proposals-automations", ...]
  */
 
-const { ApprovalHandler } = require('./approval-handler');
+const { ApprovalHandler } = require('../handlers/approval-handler');
 const axios = require('axios');
 const fs = require('fs');
 require('dotenv').config();
