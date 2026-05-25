@@ -18,3 +18,7 @@ Untitled
 .config/
 telegram-config.json
 .claude/skills-performance.json
+
+# Root npm files (npm project is in app/ only)
+/package.json
+/package-lock.json
