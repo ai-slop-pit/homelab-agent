@@ -13,8 +13,8 @@ echo "[*] Waiting 45 seconds for Telegram to clear session..."
 sleep 45
 
 echo "[*] Starting single bot instance..."
-cd /opt/claude-agent
-env $(cat .env | xargs) node telegram-bot.js > logs/telegram-bot.log 2>&1 &
+cd /opt/claude-agent/app
+env $(cat ../.env | xargs) node src/telegram/bot.js > ../logs/telegram-bot.log 2>&1 &
 BOT_PID=$!
 echo "[*] Bot started with PID: $BOT_PID"
 

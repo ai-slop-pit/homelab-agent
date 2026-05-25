@@ -1,6 +1,6 @@
 #!/bin/bash
-cd /opt/claude-agent
+cd /opt/claude-agent/app
 set -a
-source .env
+source ../.env
 set +a
 exec node src/telegram/bot.js

@@ -8,8 +8,8 @@ echo "[*] Waiting 40 seconds for Telegram to clear session..."
 sleep 40
 
 echo "[*] Starting fresh bot instance..."
-cd /opt/claude-agent
-env $(cat .env | xargs) nohup node telegram-bot.js > logs/telegram-bot.log 2>&1 &
+cd /opt/claude-agent/app
+env $(cat ../.env | xargs) nohup node src/telegram/bot.js > ../logs/telegram-bot.log 2>&1 &
 
 echo "[*] Bot started. Waiting for it to initialize..."
 sleep 5
