@@ -41,10 +41,10 @@ All channels read/write to shared memory and skill library.
 
 ## The Vision
 
-Skills don't come pre-built. They **emerge from work**.
+The entire agent system **evolves through work**, not by design.
 
-**Phase 1**: You give tasks → Agent executes them  
-**Phase 2**: Agent detects patterns → Proposes new skills  
-**Phase 3**: Skills mature → Agent refines based on feedback  
+**Phase 1**: You give tasks → Agent does them, records what it learned  
+**Phase 2**: Agent spots patterns → Proposes automations, new capabilities, better approaches  
+**Phase 3**: System matures → Behavior, memory, skills, reasoning all improve iteratively  
 
-End state: You never wrote a skill manually. They all grew naturally.
+End state: The agent is smarter, faster, and more autonomous than it started. No one architected that—it just happened through doing.
