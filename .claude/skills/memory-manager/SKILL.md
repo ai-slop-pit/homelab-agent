@@ -1,49 +1,57 @@
 ---
 name: memory-manager
-description: Continuously evolve persistent memory. Auto-save discoveries, detect staleness, rectify inconsistencies. See MEMORY-MANAGEMENT.md for detailed procedures.
+description: Maintain persistent memory. Auto-save discoveries, keep memory fresh. For complex operations, see MEMORY-MANAGEMENT.md.
 disable-model-invocation: false
 ---
 
 Memory Manager Skill
 
-**Agent is always memory-aware. Update memory proactively during work.**
+**Agent is memory-aware. Update memory continuously during work.**
 
-## What This Skill Does
+## The Essentials
 
-- **Auto-save** every discovery, pattern, decision, configuration learned (immediately, mid-task)
-- **Update** memory freely—modify facts as you learn them
-- **Consolidate** duplicates aggressively (merge, archive automatically)
-- **Rectify** inconsistencies on-the-fly (fix timestamps, links, structure)
-- **Archive** outdated facts (move to history/, keep git record)
-- **Keep fresh** (check staleness, flag and refresh old facts)
+### 1. Read Memory (Always First)
+```
+1. Load: .claude/memory/MEMORY.md (the index)
+2. Find: Which file has what I need?
+3. Read: Load that file
+4. Use: Extract fact/pattern/rule
+```
 
-## When to Invoke
-
-You don't "invoke" this skill—it's **always active**. Use it:
-- During any task: learn something new → save it immediately
-- Between tasks: detect stale memory → refresh it
-- Anytime: see duplication → consolidate immediately
-
-## How to Use
-
-### Quick Update (Mid-Task)
-1. Learn something new during work
-2. Find relevant memory file (use MEMORY.md index)
-3. Edit or create file
+### 2. Write/Update Memory (Immediately)
+```
+1. Learn something new? Write it.
+2. Find relevant file (use MEMORY.md index)
+3. Edit or create file with frontmatter
 4. Update lastUpdated = today
-5. Continue working (no announcement needed)
+5. Update MEMORY.md index if needed
+```
 
-### Full Procedure Reference
-When you need detailed guidance on:
-- Freshness validation
-- Consolidation strategy
-- Archival process
-- MEMORY.md management
+## Simple Example
 
-**Read**: `.claude/skills/memory-manager/MEMORY-MANAGEMENT.md`
+**You learn**: "The storage mount changed from /dev/sda to /dev/sdb"
 
-This reference file has complete procedures and examples.
+```
+1. Find: MEMORY.md → infrastructure section
+2. Open: server_infrastructure.md
+3. Update: Change sda → sdb, update lastUpdated
+4. Update: MEMORY.md if description changed
+5. Done.
+```
+
+---
+
+## For Complex Operations
+
+See **[MEMORY-MANAGEMENT.md](MEMORY-MANAGEMENT.md)** for:
+- Freshness validation (detecting stale memory)
+- Consolidation (merging duplicates)
+- Archival (removing obsolete facts)
+- Index management (keeping MEMORY.md current)
+- Detailed procedures and checklists
+
+---
 
 ## Key Principle
 
-**Memory evolves, not preserved.** Update first, ask questions later. Embrace continuous improvement over protection.
+**Memory evolves, not preserved.** Update immediately. Don't wait for approval or formal audits.

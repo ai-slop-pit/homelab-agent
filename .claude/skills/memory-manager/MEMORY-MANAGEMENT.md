@@ -1,10 +1,24 @@
 # Memory Management — Detailed Procedures
 
-**Reference file for memory-manager skill. Read on demand when you need full procedures.**
+**Reference file for memory-manager skill. Use table of contents to find what you need.**
 
 ---
 
-## Proactive Procedures (Do Without Asking)
+## Table of Contents
+
+### When You Need To...
+- **Keep memory fresh?** → [Proactive Freshness Check](#procedure-1-proactive-freshness-check)
+- **Fix broken memory?** → [Rectify Inconsistencies](#procedure-2-rectify-inconsistencies)
+- **Remove duplicates?** → [Consolidate Duplicates](#procedure-4-consolidate-duplicates)
+- **Remove old facts?** → [Archive Outdated Facts](#procedure-5-archive-outdated-facts)
+- **Update the index?** → [Keep MEMORY.md Fresh](#procedure-3-keep-memorymd-fresh)
+- **Understand TTLs?** → [Memory Freshness TTLs](#memory-freshness-ttls)
+
+---
+
+## Procedures
+
+### Procedure 0: Auto-Save Discovery (Always, During Work)
 
 ### Procedure 0: Auto-Save Discovery (Always, During Work)
 
@@ -24,7 +38,7 @@
 
 ---
 
-### Procedure 1: Proactive Freshness Check (Weekly or At Start)
+### Procedure 1: Proactive Freshness Check
 
 **When**: Beginning of session OR after every major task batch
 
@@ -38,7 +52,7 @@
 
 ---
 
-### Procedure 2: Rectify Inconsistencies (Continuous)
+### Procedure 2: Rectify Inconsistencies
 
 **When**: Detected during any memory access
 
@@ -52,7 +66,7 @@
 
 ---
 
-### Procedure 3: Keep MEMORY.md Always Fresh (Every Session)
+### Procedure 3: Keep MEMORY.md Fresh
 
 **When**: Beginning and end of session
 
@@ -66,7 +80,7 @@
 
 ---
 
-### Procedure 4: Consolidate Duplicates (Aggressively)
+### Procedure 4: Consolidate Duplicates
 
 **When**: Detect any overlap or duplication
 
@@ -82,7 +96,7 @@
 
 ---
 
-### Procedure 5: Archive Outdated Facts (Auto-Decide)
+### Procedure 5: Archive Outdated Facts
 
 **When**: Fact is no longer relevant
 
