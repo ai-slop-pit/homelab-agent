@@ -43,7 +43,7 @@ PORT=3000
 ### 3. Make Scripts Executable
 
 ```bash
-chmod +x ./.claude/task-runner.sh
+chmod +x ./.claude/scripts/task-runner.sh
 chmod +x ./.claude/approval-gate.sh
 chmod +x ./.claude/agent-state-utils.py
 ```
@@ -63,7 +63,7 @@ mkdir -p logs
 python3 ./.claude/agent-state-utils.py add-task cli user query "weather" research false normal
 
 # Execute it
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # Check result
 python3 ./.claude/agent-state-utils.py list-completed
@@ -73,10 +73,10 @@ python3 ./.claude/agent-state-utils.py list-completed
 
 ```bash
 # Run forever (5s polling, logs to logs/task-runner-YYYY-MM-DD.log)
-./.claude/task-runner.sh loop 0 &
+./.claude/scripts/task-runner.sh loop 0 &
 
 # Or in a tmux session
-tmux new-session -d -s agent "./.claude/task-runner.sh loop 0"
+tmux new-session -d -s agent "./.claude/scripts/task-runner.sh loop 0"
 
 # Check status
 tmux capture-pane -t agent -p
@@ -97,7 +97,7 @@ Type=simple
 User=claude
 WorkingDirectory=/opt/claude-agent
 Environment="HOME=/home/claude"
-ExecStart=/opt/claude-agent/.claude/task-runner.sh loop 0
+ExecStart=/opt/claude-agent/.claude/scripts/task-runner.sh loop 0
 Restart=always
 RestartSec=10
 
@@ -133,7 +133,7 @@ module.exports = {
   apps: [
     {
       name: 'claude-task-runner',
-      script: './.claude/task-runner.sh',
+      script: './.claude/scripts/task-runner.sh',
       args: 'loop 0',
       cwd: '/opt/claude-agent',
       user: 'claude',
@@ -204,7 +204,7 @@ The agent operates as a single persistent intelligence...
 
 ### Approval Rules Customization
 
-Edit `.claude/task-runner.sh` to adjust approval behavior:
+Edit `.claude/scripts/task-runner.sh` to adjust approval behavior:
 
 ```bash
 # Destructive keyword detection
@@ -223,14 +223,14 @@ const requiresApproval = isDestructive || !isOwner(userId);
 
 Each skill may have configuration. Examples:
 
-**Research Skill** (`./.claude/skills/research/`):
+**Research Skill** (`./skills/research/`):
 ```bash
 # Uses Gemini by default, can override
 GEMINI_MODEL=gemini-3.5-flash
 RESEARCH_TIMEOUT=300
 ```
 
-**Home Automation Skill** (`./.claude/skills/home-automation/`):
+**Home Automation Skill** (`./skills/home-automation/`):
 ```bash
 # Proxmox API
 PROXMOX_HOST=192.168.50.2
@@ -293,7 +293,7 @@ GROUP_ID=<group-id>          # Group members can submit (requires approval)
 
 ```bash
 # 1. Check shared state exists and is valid
-cat .claude/agent-state.json | python3 -m json.tool > /dev/null && echo "✅ State valid"
+cat state/agent-state.json | python3 -m json.tool > /dev/null && echo "✅ State valid"
 
 # 2. Test adding a task
 TASK_ID=$(python3 ./.claude/agent-state-utils.py add-task cli user query "test" research false normal)
@@ -303,7 +303,7 @@ echo "Created: $TASK_ID"
 python3 ./.claude/agent-state-utils.py list-pending | jq '.[] | {id, status}'
 
 # 4. Run task-runner once
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # 5. Check it's completed
 python3 ./.claude/agent-state-utils.py list-completed | jq '.[-1] | {id, status, result}'
@@ -322,7 +322,7 @@ curl http://localhost:3000/health
 ```bash
 # Check all components
 echo "=== Agent State ===" && \
-  cat .claude/agent-state.json | python3 -m json.tool | head -5 && \
+  cat state/agent-state.json | python3 -m json.tool | head -5 && \
 echo "=== Pending Tasks ===" && \
   python3 ./.claude/agent-state-utils.py list-pending | jq 'length' && \
 echo "=== Recent Logs ===" && \
@@ -337,7 +337,7 @@ echo "✅ All checks passed"
 ```bash
 # Initialize shared state
 python3 ./.claude/agent-state-utils.py set-state idle
-# This creates .claude/agent-state.json with default structure
+# This creates state/agent-state.json with default structure
 ```
 
 ### Issue: "Permission denied" on scripts
@@ -371,10 +371,10 @@ npm start
 
 ```bash
 # Backup agent state
-cp .claude/agent-state.json backups/agent-state-$(date +%Y%m%d).json
+cp state/agent-state.json backups/agent-state-$(date +%Y%m%d).json
 
 # Or automated via cron
-0 2 * * * cd /opt/claude-agent && cp .claude/agent-state.json backups/agent-state-$(date +\%Y\%m\%d).json
+0 2 * * * cd /opt/claude-agent && cp state/agent-state.json backups/agent-state-$(date +\%Y\%m\%d).json
 ```
 
 ### Full Backup
@@ -391,7 +391,7 @@ tar czf claude-agent-backup-$(date +%Y%m%d).tar.gz \
 
 ```bash
 # Restore state file
-cp backups/agent-state-YYYYMMDD.json .claude/agent-state.json
+cp backups/agent-state-YYYYMMDD.json state/agent-state.json
 
 # Or restore everything
 tar xzf claude-agent-backup-YYYYMMDD.tar.gz
@@ -401,7 +401,7 @@ tar xzf claude-agent-backup-YYYYMMDD.tar.gz
 
 1. ✅ Install dependencies: `npm install`
 2. ✅ Configure: Create `.env` with BOT_TOKEN and IDs
-3. ✅ Test: Run `./.claude/task-runner.sh run`
+3. ✅ Test: Run `./.claude/scripts/task-runner.sh run`
 4. ✅ Deploy: Use systemd service or PM2
 5. 📖 Learn: Read [USAGE.md](USAGE.md) for interface guide
 6. 🔧 Extend: Check [DEVELOPMENT.md](DEVELOPMENT.md) for adding skills

@@ -13,7 +13,7 @@ Claude Home Assistant operates as a **unified autonomous agent** with a single p
 │               UNIFIED AGENT BRAIN                        │
 │                                                          │
 │  Persistent Context:                                    │
-│  • Shared state (.claude/agent-state.json)              │
+│  • Shared state (state/agent-state.json)              │
 │  • Task queue (pending, approved, completed)            │
 │  • Approval status and audit trail                      │
 │  • Agent lifecycle state (idle, busy, sleeping)         │
@@ -27,7 +27,7 @@ Claude Home Assistant operates as a **unified autonomous agent** with a single p
                │                   │
                └─────────┬─────────┘
                          ▼
-          .claude/agent-state.json
+          state/agent-state.json
           (Single Source of Truth)
                          │
          ┌───────────────┼──────────────┐
@@ -83,7 +83,7 @@ Claude Home Assistant operates as a **unified autonomous agent** with a single p
 
 ### 1. Shared Agent State
 
-**File**: `.claude/agent-state.json`
+**File**: `state/agent-state.json`
 
 The single source of truth for the entire system. All interfaces (CLI, Telegram, HTTP) read from and write to this file.
 
@@ -133,14 +133,14 @@ The single source of truth for the entire system. All interfaces (CLI, Telegram,
 
 ### 2. Task Runner (Autonomous Loop)
 
-**File**: `./.claude/task-runner.sh`
+**File**: `./.claude/scripts/task-runner.sh`
 
 Implements the autonomous execution engine. Polls the shared state, filters for executable tasks, invokes skills, and updates state.
 
 **Execution Model**:
 ```bash
 While tasks exist:
-  1. Read .claude/agent-state.json
+  1. Read state/agent-state.json
   2. Filter: status in (pending, approved) AND approval_required satisfied
   3. Sort by priority (high → normal → low)
   4. For each task:
@@ -154,9 +154,9 @@ While tasks exist:
 
 **Usage**:
 ```bash
-./.claude/task-runner.sh run            # Execute once, exit
-./.claude/task-runner.sh loop 10        # Run 10 iterations
-./.claude/task-runner.sh loop 0         # Run forever (5s polling)
+./.claude/scripts/task-runner.sh run            # Execute once, exit
+./.claude/scripts/task-runner.sh loop 10        # Run 10 iterations
+./.claude/scripts/task-runner.sh loop 0         # Run forever (5s polling)
 ```
 
 **Design Benefits**:
@@ -254,7 +254,7 @@ User: ./.claude/agent-state-utils.py add-task cli user query "weather" research 
   ↓
 Adds to pending_tasks with approval_required=false
   ↓
-Task runner polls: ./.claude/task-runner.sh run
+Task runner polls: ./.claude/scripts/task-runner.sh run
   ↓
 Finds task, status=pending, no approval needed
   ↓
@@ -289,7 +289,7 @@ Owner: ./.claude/approval-gate.sh approve-index 1
   ↓
 Task status → approved, approved_by=owner
   ↓
-Task runner polls: ./.claude/task-runner.sh run
+Task runner polls: ./.claude/scripts/task-runner.sh run
   ↓
 Finds task, status=approved
   ↓
@@ -365,7 +365,7 @@ Done ✅
 - Results captured: `result` field
 
 **State Snapshots**:
-- `.claude/agent-state.json` is the current snapshot
+- `state/agent-state.json` is the current snapshot
 - Backup before major changes
 - Completed tasks can be archived
 

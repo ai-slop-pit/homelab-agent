@@ -9,20 +9,20 @@
 **Solutions**:
 ```bash
 # Check if file exists
-ls -la .claude/agent-state.json
+ls -la state/agent-state.json
 
 # Recreate with defaults
 python3 ./.claude/agent-state-utils.py set-state idle
 
 # Restore from backup
-cp backups/agent-state-20260524.json .claude/agent-state.json
+cp backups/agent-state-20260524.json state/agent-state.json
 
 # Validate JSON
-python3 -c "import json; json.load(open('.claude/agent-state.json'))" && echo "Valid"
+python3 -c "import json; json.load(open('state/agent-state.json'))" && echo "Valid"
 ```
 
 **Prevention**:
-- Regular backups: `cp .claude/agent-state.json backups/$(date +%Y%m%d).json`
+- Regular backups: `cp state/agent-state.json backups/$(date +%Y%m%d).json`
 - Never edit directly; use utils instead
 - Keep backups directory: `mkdir -p backups`
 
@@ -74,7 +74,7 @@ kill -9 $(lsof -t -i :3000)  # Kill if needed
 ps aux | grep task-runner
 
 # 2. Run once with debug output
-bash -x ./.claude/task-runner.sh run 2>&1 | head -50
+bash -x ./.claude/scripts/task-runner.sh run 2>&1 | head -50
 
 # 3. Check state file
 python3 ./.claude/agent-state-utils.py list-pending | jq '.[0]'
@@ -89,7 +89,7 @@ python3 ./.claude/agent-state-utils.py approve <task-id> user
 tail logs/task-runner-*.log
 
 # 7. Is agent_state stuck?
-cat .claude/agent-state.json | jq '.agent_state'
+cat state/agent-state.json | jq '.agent_state'
 # Should be "idle", "busy", or "sleeping"
 # If "error": python3 ./.claude/agent-state-utils.py set-state idle
 ```
@@ -122,7 +122,7 @@ python3 ./.claude/agent-state-utils.py update-status <task-id> completed "Comple
 
 # 5. Restart task-runner if stuck
 pkill task-runner.sh
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 ```
 
 **Prevention**:
@@ -154,7 +154,7 @@ curl -X POST http://localhost:3000/task \
   -d '{"task": "test"}'
 
 # 5. Check state file not corrupted
-python3 -c "import json; json.load(open('.claude/agent-state.json'))"
+python3 -c "import json; json.load(open('state/agent-state.json'))"
 ```
 
 **Common Issues**:
@@ -204,15 +204,15 @@ grep "notify" logs/*.log | tail -5
 top -p $(pgrep -f task-runner)
 
 # 2. Check state file size (too many tasks?)
-wc -l .claude/agent-state.json
+wc -l state/agent-state.json
 # If >10MB, archive completed tasks
 
 # 3. Check polling interval
-grep "sleep " ./.claude/task-runner.sh
+grep "sleep " ./.claude/scripts/task-runner.sh
 # Default 5s, can increase if tasks are less frequent
 
 # 4. Profile skill execution
-time ./.claude/task-runner.sh run
+time ./.claude/scripts/task-runner.sh run
 
 # 5. Check disk I/O
 iostat 1 5
@@ -222,13 +222,13 @@ python3 << 'EOF'
 import json
 from datetime import datetime, timedelta
 
-state = json.load(open('.claude/agent-state.json'))
+state = json.load(open('state/agent-state.json'))
 cutoff = (datetime.now() - timedelta(days=30)).isoformat()
 state['completed_tasks'] = [
     t for t in state['completed_tasks']
     if t['updated_at'] > cutoff
 ]
-json.dump(state, open('.claude/agent-state.json', 'w'))
+json.dump(state, open('state/agent-state.json', 'w'))
 print(f"Archived {len(state['completed_tasks'])} tasks")
 EOF
 ```
@@ -242,20 +242,20 @@ EOF
 **Solution**:
 ```bash
 # 1. Check skill is registered in task-runner.sh
-grep "execute_research_skill" ./.claude/task-runner.sh
+grep "execute_research_skill" ./.claude/scripts/task-runner.sh
 
 # 2. Check skill name in task matches
 python3 ./.claude/agent-state-utils.py get-task <task-id> | jq '.skill'
 
 # 3. Test skill manually
-source ./.claude/task-runner.sh
+source ./.claude/scripts/task-runner.sh
 execute_research_skill "<task-id>" "test query"
 
 # 4. Check skill script exists
-ls -la .claude/skills/<skill-name>/
+ls -la skills/<skill-name>/
 
 # 5. Check skill function in task-runner
-grep -A10 "execute_<skill>_skill" ./.claude/task-runner.sh
+grep -A10 "execute_<skill>_skill" ./.claude/scripts/task-runner.sh
 ```
 
 **Common Issues**:
@@ -272,11 +272,11 @@ grep -A10 "execute_<skill>_skill" ./.claude/task-runner.sh
 **Solution**:
 ```bash
 # 1. Try to validate state
-python3 -c "import json; d = json.load(open('.claude/agent-state.json')); print('Valid')"
+python3 -c "import json; d = json.load(open('state/agent-state.json')); print('Valid')"
 
 # 2. If invalid, restore backup
 ls -la backups/
-cp backups/agent-state-20260524.json .claude/agent-state.json
+cp backups/agent-state-20260524.json state/agent-state.json
 
 # 3. If no backup, recreate from logs
 # Check logs/task-runner-*.log and logs/approvals-*.log
@@ -312,7 +312,7 @@ python3 ./.claude/agent-state-utils.py list-pending | jq '.[] | {status}'
 # Only show those
 python3 << 'EOF'
 import json
-state = json.load(open('.claude/agent-state.json'))
+state = json.load(open('state/agent-state.json'))
 pending = [t for t in state.get('pending_tasks', [])
            if t['approval_required'] and t['status'] == 'pending']
 print(f"Tasks awaiting approval: {len(pending)}")
@@ -332,7 +332,7 @@ Quick health check:
 echo "=== Agent Health Check ==="
 
 echo "✅ State file:"
-python3 -c "import json; json.load(open('.claude/agent-state.json'))" && echo "  Valid JSON"
+python3 -c "import json; json.load(open('state/agent-state.json'))" && echo "  Valid JSON"
 
 echo "✅ Pending tasks:"
 python3 ./.claude/agent-state-utils.py list-pending | jq 'length'
@@ -365,14 +365,14 @@ pkill task-runner
 pkill node
 
 # 2. Backup current state
-cp .claude/agent-state.json backups/agent-state-before-reset.json
+cp state/agent-state.json backups/agent-state-before-reset.json
 
 # 3. Reinitialize state
 python3 ./.claude/agent-state-utils.py set-state idle
 
 # 4. Start services
 npm start &
-./.claude/task-runner.sh loop 0 &
+./.claude/scripts/task-runner.sh loop 0 &
 
 echo "Agent reset complete"
 ```
@@ -384,13 +384,13 @@ echo "Agent reset complete"
 ls -la backups/
 
 # 2. Restore
-cp backups/agent-state-20260524.json .claude/agent-state.json
+cp backups/agent-state-20260524.json state/agent-state.json
 
 # 3. Restart
 pkill task-runner
 pkill node
 npm start &
-./.claude/task-runner.sh loop 0 &
+./.claude/scripts/task-runner.sh loop 0 &
 ```
 
 ---

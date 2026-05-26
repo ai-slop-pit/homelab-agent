@@ -1,23 +1,14 @@
 node_modules/
 .env
-logs/
 *.log
 
-# Ephemeral state & session files
-.claude/current-session.json
-.claude/execution-traces.jsonl
-.claude/manager-state.json
-.claude/agent-state.json
-.claude/proposal*.jsonl
-.claude/proposal*.json
+# Ephemeral runtime state
+state/
+logs/
+
+# Local Claude Code overrides
 .claude/settings.local.json
 
-# Dev artifacts
-Untitled
+# Root npm lock (node_modules handled above)
+package-lock.json
 .config/
-telegram-config.json
-.claude/skills-performance.json
-
-# Root npm files (npm project is in app/ only)
-/package.json
-/package-lock.json

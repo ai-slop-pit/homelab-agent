@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CONFIG_FILE = '/opt/claude-agent/.claude/telegram-config.json';
+const CONFIG_FILE = '/opt/claude-agent/config/telegram-config.json';
 
 class TopicManager {
   constructor() {

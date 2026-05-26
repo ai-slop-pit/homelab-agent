@@ -6,7 +6,7 @@ Skills are the building blocks of task execution. Each skill handles a specific 
 
 ### research
 
-**Location**: `./.claude/skills/research/`
+**Location**: `./skills/research/`
 
 **Purpose**: Deep web research using Gemini models with web search enabled
 
@@ -213,14 +213,14 @@ Define in `SKILL.md`:
 ### Step 2: Create Skill Directory
 
 ```bash
-mkdir -p ./.claude/skills/<skill-name>
-cd ./.claude/skills/<skill-name>
+mkdir -p ./skills/<skill-name>
+cd ./skills/<skill-name>
 touch SKILL.md README.md
 ```
 
 ### Step 3: Implement in Task Runner
 
-Add to `./.claude/task-runner.sh`:
+Add to `./.claude/scripts/task-runner.sh`:
 
 ```bash
 execute_<skill>_skill() {
@@ -252,7 +252,7 @@ execute_<skill>_skill() {
 TASK=$(python3 ./.claude/agent-state-utils.py add-task cli user query "test skill" <skill-name> false normal)
 
 # Run task-runner
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # Check result
 python3 ./.claude/agent-state-utils.py get-task "$TASK" | jq '{status, result, error}'
@@ -272,7 +272,7 @@ Add to `docs/SKILLS.md`:
 ### Step 6: Commit
 
 ```bash
-git add .claude/skills/<skill-name>/ ./.claude/task-runner.sh docs/SKILLS.md
+git add skills/<skill-name>/ ./.claude/scripts/task-runner.sh docs/SKILLS.md
 git commit -m "feat: add <skill-name> skill
 
 [Description of what skill does]
@@ -392,7 +392,7 @@ execute_with_retry() {
 # Test each skill
 for skill in research reminder-engine home-automation; do
   TASK=$(python3 ./.claude/agent-state-utils.py add-task cli user query "test" "$skill" false normal)
-  ./.claude/task-runner.sh run
+  ./.claude/scripts/task-runner.sh run
   STATUS=$(python3 ./.claude/agent-state-utils.py get-task "$TASK" | jq -r '.status')
   echo "$skill: $STATUS"
 done

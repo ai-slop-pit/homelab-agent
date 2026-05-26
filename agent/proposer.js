@@ -7,7 +7,7 @@ const fs = require('fs');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const GROUP_ID = process.env.GROUP_ID ? parseInt(process.env.GROUP_ID) : -1003951507653;
-const CONFIG_FILE = '/opt/claude-agent/.claude/telegram-config.json';
+const CONFIG_FILE = '/opt/claude-agent/config/telegram-config.json';
 
 if (!BOT_TOKEN) {
   console.error('BOT_TOKEN required');
@@ -15,7 +15,7 @@ if (!BOT_TOKEN) {
 }
 
 const telegram = new Telegraf(BOT_TOKEN).telegram;
-const PROPOSALS_FILE = '/opt/claude-agent/.claude/proposals.json';
+const PROPOSALS_FILE = '/opt/claude-agent/state/proposals.json';
 
 function loadConfig() {
   try {

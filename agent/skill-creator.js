@@ -7,7 +7,7 @@ const path = require('path');
 const { SkillPerformanceTracker } = require('../utils/performance-tracker');
 
 const SKILLS_DIR = '/opt/claude-agent/.claude/skills';
-const PROPOSALS_FILE = '/opt/claude-agent/.claude/proposals.json';
+const PROPOSALS_FILE = '/opt/claude-agent/state/proposals.json';
 
 class SkillCreator {
   constructor() {

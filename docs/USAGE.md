@@ -64,13 +64,13 @@ python3 ./.claude/agent-state-utils.py get-task <task-id>
 
 ```bash
 # Run once (execute all pending/approved tasks)
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # Run continuously (with 5-second polling)
-./.claude/task-runner.sh loop 0 &
+./.claude/scripts/task-runner.sh loop 0 &
 
 # Run N iterations then exit
-./.claude/task-runner.sh loop 10
+./.claude/scripts/task-runner.sh loop 10
 
 # Check logs
 tail -f logs/task-runner-$(date +%Y-%m-%d).log
@@ -231,7 +231,7 @@ curl http://localhost:3000/status
 python3 ./.claude/agent-state-utils.py add-task cli user query "latest Claude capabilities" research false high
 
 # Immediately execute
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # Check result
 python3 ./.claude/agent-state-utils.py list-completed | tail -1 | jq '.result'
@@ -288,7 +288,7 @@ curl -X POST http://localhost:3000/task \
 ./.claude/approval-gate.sh auto-approve reminder
 
 # Then run task-runner
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # All execute and wife gets notifications
 ```
@@ -321,14 +321,14 @@ python3 ./.claude/agent-state-utils.py update-status <task-id> <status> [result]
 
 ```bash
 # Execute once
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # Run continuously
-./.claude/task-runner.sh loop 0          # Forever
-./.claude/task-runner.sh loop 10         # 10 iterations
+./.claude/scripts/task-runner.sh loop 0          # Forever
+./.claude/scripts/task-runner.sh loop 10         # 10 iterations
 
 # In background
-./.claude/task-runner.sh loop 0 &
+./.claude/scripts/task-runner.sh loop 0 &
 ```
 
 ### Approval Gate
@@ -368,9 +368,9 @@ sudo systemctl status claude-agent
 
 ✅ **DO**:
 - Use CLI for complex, high-priority tasks
-- Run `./.claude/task-runner.sh run` after submitting important tasks
+- Run `./.claude/scripts/task-runner.sh run` after submitting important tasks
 - Regularly check logs: `tail -f logs/task-runner-*.log`
-- Backup `.claude/agent-state.json` regularly
+- Backup `state/agent-state.json` regularly
 - Review approval logs: `tail logs/approvals-*.log`
 
 ❌ **DON'T**:
@@ -435,7 +435,7 @@ curl http://localhost:3000/health
 curl http://localhost:3000/status | jq .
 
 # Verify state file
-python3 -c "import json; json.load(open('.claude/agent-state.json'))" && echo "✅ State valid"
+python3 -c "import json; json.load(open('state/agent-state.json'))" && echo "✅ State valid"
 
 # Count tasks
 echo "Pending: $(python3 ./.claude/agent-state-utils.py list-pending | jq 'length')"
@@ -483,7 +483,7 @@ python3 ./.claude/agent-state-utils.py update-status <task-id> failed "Stuck in 
 
 ```bash
 # Restore from backup
-cp backups/agent-state-latest.json .claude/agent-state.json
+cp backups/agent-state-latest.json state/agent-state.json
 
 # Or recreate with empty state
 python3 ./.claude/agent-state-utils.py set-state idle

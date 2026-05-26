@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const AGENT_STATE_PATH = './.claude/agent-state.json';
+const AGENT_STATE_PATH = './.claude/state/agent-state.json';
 const APPROVAL_TIMEOUT = 300000; // 5 minutes
 
 class ApprovalHandler {

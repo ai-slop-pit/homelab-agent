@@ -5,8 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const BATCH_QUEUE_FILE = '/opt/claude-agent/.claude/proposal-batch-queue.json';
-const BATCH_HISTORY_FILE = '/opt/claude-agent/.claude/proposal-batches.jsonl';
+const BATCH_QUEUE_FILE = '/opt/claude-agent/state/proposal-batch-queue.json';
+const BATCH_HISTORY_FILE = '/opt/claude-agent/logs/proposal-batches.jsonl';
 const BATCH_WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 class ProposalBatcher {

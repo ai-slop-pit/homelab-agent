@@ -7,8 +7,8 @@
 Each skill is a domain-specific executor. Create a new skill:
 
 ```bash
-mkdir -p .claude/skills/<skill-name>
-cd .claude/skills/<skill-name>
+mkdir -p skills/<skill-name>
+cd skills/<skill-name>
 
 # Create these files:
 touch SKILL.md      # Interface definition
@@ -35,7 +35,7 @@ Create, track, and execute reminders at specified times.
 
 ## Constraints
 - Max 100 active reminders
-- Reminders stored in .claude/agent-state.json
+- Reminders stored in state/agent-state.json
 - Re-execution on failure (up to 3 retries)
 
 ## Examples
@@ -46,7 +46,7 @@ Create, track, and execute reminders at specified times.
 
 ### Task Runner Integration
 
-Add execution function to `./.claude/task-runner.sh`:
+Add execution function to `./.claude/scripts/task-runner.sh`:
 
 ```bash
 # In task-runner.sh, add:
@@ -163,7 +163,7 @@ TEST_TASK=$(python3 ./.claude/agent-state-utils.py add-task cli user query "test
 echo "Created: $TEST_TASK"
 
 # 2. Run once
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 
 # 3. Check result
 python3 ./.claude/agent-state-utils.py get-task "$TEST_TASK" | jq '{status, result, error}'
@@ -275,7 +275,7 @@ python3 << 'EOF'
 import json
 from datetime import datetime, timedelta
 
-state = json.load(open('.claude/agent-state.json'))
+state = json.load(open('state/agent-state.json'))
 
 # Keep only last 30 days
 cutoff = (datetime.now() - timedelta(days=30)).isoformat()
@@ -284,7 +284,7 @@ state['completed_tasks'] = [
     if t['updated_at'] > cutoff
 ]
 
-json.dump(state, open('.claude/agent-state.json', 'w'), indent=2)
+json.dump(state, open('state/agent-state.json', 'w'), indent=2)
 print(f"Archived to {len(state['completed_tasks'])} tasks")
 EOF
 ```
@@ -318,7 +318,7 @@ COUNT=$(python3 ./.claude/agent-state-utils.py list-pending | jq 'length')
 [[ $COUNT -gt 0 ]] && echo "✅ Task in pending" || exit 1
 
 # 3. Run once
-./.claude/task-runner.sh run > /tmp/runner.log 2>&1
+./.claude/scripts/task-runner.sh run > /tmp/runner.log 2>&1
 grep -q "Executing" /tmp/runner.log && echo "✅ Task executed" || exit 1
 
 # 4. Check completed
@@ -362,7 +362,7 @@ Includes patterns for new skills, testing, and integration"
 git checkout -b feature/reminder-engine
 
 # Work and test
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 # ... make changes ...
 git add -A
 git commit -m "feat: add reminder-engine"
@@ -383,7 +383,7 @@ git branch -d feature/reminder-engine
 
 ```bash
 # State file
-json .claude/agent-state.json | head
+json state/agent-state.json | head
 
 # Task runner
 ps aux | grep task-runner
@@ -396,7 +396,7 @@ grep ERROR logs/*.log | tail -5
 
 # Agent state
 python3 ./.claude/agent-state-utils.py set-state busy  # Change state
-# Should see in .claude/agent-state.json: "agent_state": "busy"
+# Should see in state/agent-state.json: "agent_state": "busy"
 ```
 
 ### Debug a Failing Task
@@ -411,7 +411,7 @@ python3 ./.claude/agent-state-utils.py get-task "$TASK_ID" | jq .
 grep "$TASK_ID" logs/*.log
 
 # 3. Manually re-run the skill
-. ./.claude/task-runner.sh
+. ./.claude/scripts/task-runner.sh
 execute_research_skill "$TASK_ID" "test query"
 
 # 4. Check state after
@@ -419,7 +419,7 @@ python3 ./.claude/agent-state-utils.py get-task "$TASK_ID" | jq '.error'
 
 # 5. Fix and retry
 python3 ./.claude/agent-state-utils.py update-status "$TASK_ID" "pending" "" ""
-./.claude/task-runner.sh run
+./.claude/scripts/task-runner.sh run
 ```
 
 ## Memory & Learning
@@ -442,7 +442,7 @@ EOF
 1. **Pick a skill**: Choose from Phase 2 list (reminder, home-automation, schedule)
 2. **Create SKILL.md**: Define interface
 3. **Add to task-runner**: Implement execute function
-4. **Test**: Run `./.claude/task-runner.sh run` with test task
+4. **Test**: Run `./.claude/scripts/task-runner.sh run` with test task
 5. **Document**: Add to docs/SKILLS.md
 6. **Commit**: Push to git with meaningful message
 

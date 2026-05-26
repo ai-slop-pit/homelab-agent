@@ -126,7 +126,7 @@ node agent-manager.js
 # Send /flushbatch in Telegram
 
 # View agent state
-cat .claude/agent-state.json
+cat state/agent-state.json
 
 # View proposals
 cat .claude/proposals.json

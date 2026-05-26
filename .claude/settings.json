@@ -148,7 +148,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/opt/claude-agent/hooks/post-task.sh"
+            "command": "/opt/claude-agent/.claude/scripts/hooks/post-task.sh"
           }
         ]
       }

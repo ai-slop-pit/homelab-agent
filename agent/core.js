@@ -7,16 +7,15 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const crypto = require('crypto');
-const propose = require('./agent-propose');
 const { DebateEngine } = require('./debate-engine');
 const { ProposalBatcher } = require('./proposal-batcher');
 const { SkillCreator } = require('./skill-creator');
 
-const PROPOSALS_FILE = '/opt/claude-agent/.claude/proposals.json';
-const MEMORY_DIR = '/home/claude/.claude/projects/-opt-claude-agent/memory';
+const PROPOSALS_FILE = '/opt/claude-agent/state/proposals.json';
+const MEMORY_DIR = '/opt/claude-agent/memory';
 const LEARNINGS_FILE = path.join(MEMORY_DIR, 'LEARNINGS.md');
-const MANAGER_STATE = '/opt/claude-agent/.claude/manager-state.json';
-const TRACES_FILE = '/opt/claude-agent/.claude/execution-traces.jsonl';
+const MANAGER_STATE = '/opt/claude-agent/state/manager-state.json';
+const TRACES_FILE = '/opt/claude-agent/logs/execution-traces.jsonl';
 
 // Ensure directories exist
 fs.mkdirSync(path.dirname(LEARNINGS_FILE), { recursive: true });
@@ -231,7 +230,7 @@ async function executeApprovedProposals(tracer) {
 }
 
 async function createSkillFromProposal(proposal) {
-  const skillDir = `/opt/claude-agent/.claude/skills/${proposal.name}`;
+  const skillDir = `/opt/claude-agent/skills/${proposal.name}`;
   fs.mkdirSync(skillDir, { recursive: true });
 
   // Create SKILL.md
@@ -302,7 +301,7 @@ async function analyzePatterns(tracer) {
   );
 
   try {
-    const agentState = JSON.parse(fs.readFileSync('/opt/claude-agent/.claude/agent-state.json', 'utf8'));
+    const agentState = JSON.parse(fs.readFileSync('/opt/claude-agent/state/agent-state.json', 'utf8'));
     const completed = agentState.completed_tasks || [];
 
     tracer.trace(

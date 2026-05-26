@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const TRACES_FILE = '/opt/claude-agent/.claude/execution-traces.jsonl';
-const MEMORY_DIR = '/home/claude/.claude/projects/-opt-claude-agent/memory';
+const TRACES_FILE = '/opt/claude-agent/logs/execution-traces.jsonl';
+const MEMORY_DIR = '/opt/claude-agent/memory';
 const FACTS_FILE = path.join(MEMORY_DIR, 'FACTS.md');
 
 fs.mkdirSync(MEMORY_DIR, { recursive: true });

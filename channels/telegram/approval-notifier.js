@@ -7,7 +7,7 @@
 const https = require('https');
 const fs = require('fs');
 
-const CONFIG_PATH = './.claude/telegram-config.json';
+const CONFIG_PATH = './.claude/config/telegram-config.json';
 
 class ApprovalNotifier {
   constructor(botToken) {

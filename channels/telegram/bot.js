@@ -3,17 +3,17 @@ const { spawnSync } = require('child_process');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const propose = require('../core/proposer');
+const propose = require('../../agent/proposer');
 const { batcher, handleBatchApproval, checkAndSendBatch } = require('./batch-handler');
-const { SkillCreator } = require('../skills/skill-creator');
-const { TopicManager } = require('../utils/topic-manager');
-const { ApprovalHandler } = require('../handlers/approval-handler');
+const { SkillCreator } = require('../../agent/skill-creator');
+const { TopicManager } = require('./topic-manager');
+const { ApprovalHandler } = require('../../agent/approval-handler');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const THREADS_DIR = '/opt/claude-agent/threads';
-const AGENT_STATE = '/opt/claude-agent/.claude/agent-state.json';
-const CONFIG_FILE = '/opt/claude-agent/.claude/telegram-config.json';
-const SESSION_FILE = '/opt/claude-agent/.claude/current-session.json';
+const AGENT_STATE = '/opt/claude-agent/state/agent-state.json';
+const CONFIG_FILE = '/opt/claude-agent/config/telegram-config.json';
+const SESSION_FILE = '/opt/claude-agent/state/current-session.json';
 
 // ===== Session Management =====
 function loadSession() {

@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PERF_FILE = '/opt/claude-agent/.claude/skills-performance.json';
+const PERF_FILE = '/opt/claude-agent/state/skills-performance.json';
 
 class SkillPerformanceTracker {
   constructor() {
@@ -157,7 +157,7 @@ class SkillPerformanceTracker {
       content += `- **Reason:** ${item.reason}\n\n`;
     });
 
-    const evalPath = '/home/claude/.claude/projects/-opt-claude-agent/memory/SKILL_EVALUATION.md';
+    const evalPath = '/opt/claude-agent/memory/SKILL_EVALUATION.md';
     fs.mkdirSync(path.dirname(evalPath), { recursive: true });
     fs.writeFileSync(evalPath, content);
     console.log(`✅ Evaluation saved to ${evalPath}`);

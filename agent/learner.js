@@ -6,8 +6,8 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const propose = require('./proposer.js');
 
-const MEMORY_FILE = '/home/claude/.claude/projects/-opt-claude-agent/memory/MEMORY.md';
-const STATE_FILE = '/opt/claude-agent/.claude/agent-state.json';
+const MEMORY_FILE = '/opt/claude-agent/memory/MEMORY.md';
+const STATE_FILE = '/opt/claude-agent/state/agent-state.json';
 
 function getAgentState() {
   try {

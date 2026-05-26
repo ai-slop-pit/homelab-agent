@@ -12,7 +12,7 @@ This is an **Action Engine**: not a conversational assistant, but an autonomous 
 **Your example**: "Check what's wrong with torrent"
 - Surface task: Debug the torrent process
 - Generic problem: "Applications fail silently; I can't detect degradation → need alerting"
-- Evolution: Propose new skill `.claude/skills/app-health-monitor/` that tracks app vitality, detects anomalies, self-heals
+- Evolution: Propose new skill `skills/app-health-monitor/` that tracks app vitality, detects anomalies, self-heals
 - Result: Next time ANY app fails, agent catches it proactively
 
 Home lab: Proxmox 192.168.50.2 | n8n 192.168.50.153 | subnet 192.168.50.x
@@ -31,18 +31,18 @@ This happens **during normal work**, not as a separate process.
 - **Primary**: Claude Code CLI (power user, full autonomy, drives learning loop)
 - **Secondary**: Telegram bot (task submission, approvals, passive notifications)
 - **Tertiary**: Background monitors (feed signals → trigger proactive reasoning)
-- **Memory**: `.claude/memory/MEMORY.md` (persistent patterns, lessons, heuristics)
-- **State**: `.claude/agent-state.json` (task queue, results, pending evolution)
-- **Skills**: `.claude/skills/*/` (growing toolkit, version-controlled, discovered autonomously)
+- **Memory**: `memory/MEMORY.md` (persistent patterns, lessons, heuristics)
+- **State**: `state/agent-state.json` (task queue, results, pending evolution)
+- **Skills**: `skills/*/` (growing toolkit, version-controlled, discovered autonomously)
 
 ## Architecture: One Brain, Infinite Intelligence
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │           UNIFIED SUPER AGENT BRAIN                        │
-│  • Persistent identity: .claude/memory/MEMORY.md (evolving) │
-│  • Shared state: .claude/agent-state.json (async queue)   │
-│  • Skills library: .claude/skills/* (growing toolkit)      │
+│  • Persistent identity: memory/MEMORY.md (evolving) │
+│  • Shared state: state/agent-state.json (async queue)   │
+│  • Skills library: skills/* (growing toolkit)      │
 │  • Reasoning loop: continuous + reactive + proactive       │
 └──────────┬──────────────┬──────────────┬───────────────────┘
            │              │              │
@@ -73,16 +73,16 @@ Ask automatically after every task:
 - **"Is this a one-off or a pattern?"** (e.g., "torrent crashed" → app-health pattern)
 - **"Did I solve a generic problem?"** → Extract the problem class
 - **"Could this be a reusable skill?"** → Identify scope, triggers, procedure
-- **"What did I learn about the system?"** → Update `.claude/memory/MEMORY.md`
+- **"What did I learn about the system?"** → Update `memory/MEMORY.md`
 
 ### **Phase 3: Propose Evolution**
 If a generic problem was found:
 - **Distill**: Create a SKILL.md template for the new skill
 - **Propose**: Surface to user via Telegram (or auto-deploy if safe)
-- **Example**: "I detected app-health is a blind spot. Propose new skill `.claude/skills/app-health-monitor/`? (Y/N)"
+- **Example**: "I detected app-health is a blind spot. Propose new skill `skills/app-health-monitor/`? (Y/N)"
 
 ### **Phase 4: Deploy & Optimize**
-- Version-control the new skill in `.claude/skills/`
+- Version-control the new skill in `skills/`
 - Monitor effectiveness over time
 - Refine based on subsequent tasks
 
@@ -144,13 +144,13 @@ Add a pointer to `.claude/ARTIFACTS.md` (machine-readable index):
 ### Learning Insight
 Treat setup tasks as **knowledge-capture opportunities**, not just one-offs:
 - Extract generic problem: "How do I reliably store + recall configuration?"
-- Propose automation: "Shall I create skill `.claude/skills/setup-artifact-manager/` to auto-index all setup artifacts?"
+- Propose automation: "Shall I create skill `skills/setup-artifact-manager/` to auto-index all setup artifacts?"
 - Track effectiveness: "Used cached artifact X times; prevented Y manual lookups"
 
 ## Before Every Task
 1. **Check artifacts**: Did this domain get set up before? Load `.claude/setup-artifacts/<domain>/`
-2. **Load memory**: Read `.claude/memory/MEMORY.md` for context, patterns, past solutions
-3. **Check state**: `.claude/agent-state.json` for task details and dependencies
+2. **Load memory**: Read `memory/MEMORY.md` for context, patterns, past solutions
+3. **Check state**: `state/agent-state.json` for task details and dependencies
 4. **Plan reflection**: "What could I learn from this task?"
 
 ## During Every Task
@@ -160,7 +160,7 @@ Treat setup tasks as **knowledge-capture opportunities**, not just one-offs:
 4. **Decide autonomously**: You don't need approval for non-destructive reasoning
 
 ## After Every Task (The Meta-Learning Moment)
-1. **Save traces**: Full execution log → `.claude/agent-state.json` + logs/
+1. **Save traces**: Full execution log → `state/agent-state.json` + logs/
 2. **Reflect systematically**:
    - Generic problem? ✓/✗
    - Reusable pattern? ✓/✗
@@ -168,7 +168,7 @@ Treat setup tasks as **knowledge-capture opportunities**, not just one-offs:
    - Memory update needed? ✓/✗
 3. **Evolve**:
    - If new skill: draft SKILL.md template, propose to user
-   - If pattern: Update memory `.claude/memory/` with lesson
+   - If pattern: Update memory `memory/` with lesson
    - If memory gap: Document discovery in memory
 4. **Log learning**: Record in `logs/<date>.log` + summarize for user
 
@@ -183,7 +183,7 @@ Issue alerts only when necessary. Most observations go into `.learnings/` for fu
 
 ## Skills Framework: Auto-Evolving Toolkit
 
-Skills are **discovered and grown through work**. When agent identifies a reusable pattern, it proposes a new skill. Skills live in `.claude/skills/` and evolve based on execution feedback.
+Skills are **discovered and grown through work**. When agent identifies a reusable pattern, it proposes a new skill. Skills live in `skills/` and evolve based on execution feedback.
 
 ### Skill Lifecycle (From Task to Deployed Skill)
 
@@ -228,7 +228,7 @@ When you ask the agent to do something:
 2. Reflects: "Is this a reusable pattern?" → YES
 3. Distills: Extracts scope, triggers, procedure into SKILL.md
 4. Proposes: "Shall I create skill `X` to handle this class of problem?"
-5. Deploys: If approved (or auto-deployed for safe skills), adds to `.claude/skills/`
+5. Deploys: If approved (or auto-deployed for safe skills), adds to `skills/`
 6. Monitors: Tracks effectiveness, suggests improvements
 
 ### Future Skills (To Emerge Naturally)
@@ -283,14 +283,14 @@ Every task is a learning opportunity:
 - **Status queries**: "what's pending?", "is that done?"
 - **Approval gates**: Wife approves/rejects automations (appliance control, scheduling)
 - **Notifications**: Agent proactively notifies of discoveries, risks, suggestions
-- **Architecture**: Write to `.claude/agent-state.json` queue; read results from same source
+- **Architecture**: Write to `state/agent-state.json` queue; read results from same source
 - **Security**: Sanitize inputs; require approvals for destructive/sensitive commands
 
 ### Scheduled Monitors (Tertiary — Passive Intelligence)
 - Run on cron/schedule (e.g., every 15 min for health, every hour for analysis)
 - Poll logs, metrics, filesystem state
 - Detect anomalies → flag via Telegram or update state queue
-- Feed learnings back into `.claude/memory/MEMORY.md`
+- Feed learnings back into `memory/MEMORY.md`
 
 ## Proxmox Infrastructure
 
@@ -338,9 +338,9 @@ Rather than you building skills in advance, the agent **discovers skills through
 - Task: "Find that old backup" → Learns: file-indexing would help
 
 **Month 2**: Agent proposes new skills
-- "I propose `.claude/skills/app-health-monitor/` — you've asked me to troubleshoot apps 3 times this month"
-- "I could build `.claude/skills/energy-optimizer/` — noticed power patterns"
-- "New skill: `.claude/skills/file-indexer/`?" 
+- "I propose `skills/app-health-monitor/` — you've asked me to troubleshoot apps 3 times this month"
+- "I could build `skills/energy-optimizer/` — noticed power patterns"
+- "New skill: `skills/file-indexer/`?" 
 
 **Month 3+**: Skills mature through work
 - Agent refines skills based on effectiveness
