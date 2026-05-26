@@ -98,12 +98,13 @@ disable-model-invocation: false
 1. Define the topic/query precisely
 2. Assess complexity:
    - Is this **simple fact lookup** (knowledge in training data)? → Use standard model (Flash/Pro)
-   - Is this **web-based research** (needs current info, verification, synthesis)? → Use Deep Research API
-   - Is this **comprehensive analysis** (background task, high quality needed)? → Use Deep Research Max
-3. Choose appropriate approach:
-   - **Standard model** (simple): `gemini-3-5-flash` or `gemini-3-1-pro`
-   - **Deep Research** (complex web): `google-deepresearch-1.0`
-   - **Deep Research Max** (comprehensive): `google-deepresearch-max-1.0`
+   - Is this **web-based research** (needs current info, verification, synthesis)? → Use top-notch model with web access
+   - Is this **comprehensive analysis** (background task, high quality needed)? → Use best available model
+3. Choose Gemini model in priority order (try top first, fallback if not available):
+   - **Top-notch for research**: `gemini-2.0-pro` (best reasoning)
+   - **Fallback high-quality**: `gemini-2.0-flash` (excellent synthesis, faster)
+   - **Web research specialist**: Try Deep Research models if available
+   - **Fallback**: Use whatever Gemini is available via CLI
 4. **Specify output format in prompt to include evidence tracing**:
    - "Return as: Evidence matrix mapping findings to sources (Primary/Expert/Behavioral tier)"
    - "For each key claim: include 2+ independent sources (Two-Source Rule)"
