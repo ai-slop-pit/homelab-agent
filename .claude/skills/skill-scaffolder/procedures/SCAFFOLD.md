@@ -92,5 +92,4 @@ procedures: [
 
 1. **Developer fills content**: Write each procedure (40-50 lines)
 2. **Validate**: Test procedures on real scenarios
-3. **Commit**: `git add .claude/skills/config-manager/; git commit -m "feat: Add config-manager skill"`
-4. **Monitor**: Track usage and effectiveness (see [skill-creator → MONITOR](../../skill-creator/procedures/MONITOR.md))
+3. **Monitor**: Track usage and effectiveness (see [skill-creator → MONITOR](../../skill-creator/procedures/MONITOR.md))

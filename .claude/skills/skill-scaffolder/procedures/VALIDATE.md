@@ -67,7 +67,7 @@
   - User knows: Which procedure for their task
 ```
 
-**Result**: PASS ✓ Ready for git commit
+**Result**: PASS ✓ Ready for next phase
 
 ## Failure Scenarios & Fixes
 
@@ -85,12 +85,6 @@
 
 ## After Validation
 
-**If PASS**: 
-1. Commit: `git add .claude/skills/<skill-name>/`
-2. Commit message: `feat: Add <skill-name> skill`
-3. Move to monitoring (see [skill-creator → MONITOR](../../skill-creator/procedures/MONITOR.md))
+**If PASS**: Skill is ready. Move to [skill-creator → MONITOR](../../skill-creator/procedures/MONITOR.md) phase.
 
-**If FAIL**:
-1. Fix issues per checklist
-2. Re-validate
-3. Repeat until PASS
+**If FAIL**: Fix issues per checklist, re-validate, repeat until PASS.

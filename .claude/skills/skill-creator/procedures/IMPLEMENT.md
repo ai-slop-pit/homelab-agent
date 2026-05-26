@@ -57,15 +57,9 @@
 
 ## After Implementation
 
-1. **Test the skill**: Use it on the original problem that triggered discovery
-   - Does it solve the problem?
-   - Are procedure instructions clear?
-   - Did examples match real usage?
+Test the skill on the original problem that triggered discovery:
+- Does it solve the problem?
+- Are procedure instructions clear?
+- Did examples match real usage?
 
-2. **Git commit**: Add to version control
-   ```bash
-   git add .claude/skills/app-health-monitor/
-   git commit -m "feat: Add app-health-monitor skill"
-   ```
-
-3. **Hand off to [MONITOR](MONITOR.md)** to track effectiveness.
+Then hand off to [MONITOR](MONITOR.md) to track effectiveness.
