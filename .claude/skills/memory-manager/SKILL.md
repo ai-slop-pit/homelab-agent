@@ -1,6 +1,6 @@
 ---
 name: memory-manager
-description: Maintain persistent memory. Auto-save discoveries, keep memory fresh. For complex operations, see MEMORY-MANAGEMENT.md.
+description: Maintain persistent memory. Auto-save discoveries, keep memory fresh. See reference files for specific tasks.
 disable-model-invocation: false
 ---
 
@@ -27,31 +27,20 @@ Memory Manager Skill
 5. Update MEMORY.md index if needed
 ```
 
-## Simple Example
-
-**You learn**: "The storage mount changed from /dev/sda to /dev/sdb"
-
-```
-1. Find: MEMORY.md → infrastructure section
-2. Open: server_infrastructure.md
-3. Update: Change sda → sdb, update lastUpdated
-4. Update: MEMORY.md if description changed
-5. Done.
-```
-
 ---
 
-## For Complex Operations
+## For Specific Tasks
 
-See **[MEMORY-MANAGEMENT.md](MEMORY-MANAGEMENT.md)** for:
-- Freshness validation (detecting stale memory)
-- Consolidation (merging duplicates)
-- Archival (removing obsolete facts)
-- Index management (keeping MEMORY.md current)
-- Detailed procedures and checklists
+| Task | Read This |
+|------|-----------|
+| Memory is getting stale / old facts are outdated | [FRESHNESS.md](FRESHNESS.md) |
+| Duplicate or overlapping memory found | [CONSOLIDATE.md](CONSOLIDATE.md) |
+| Obsolete facts need removal | [ARCHIVE.md](ARCHIVE.md) |
+| MEMORY.md index is out of sync | [INDEX.md](INDEX.md) |
+| Save a new discovery | [AUTOSAVE.md](AUTOSAVE.md) |
 
 ---
 
 ## Key Principle
 
-**Memory evolves, not preserved.** Update immediately. Don't wait for approval or formal audits.
+**Memory evolves, not preserved.** Update immediately. Don't wait for approval.
