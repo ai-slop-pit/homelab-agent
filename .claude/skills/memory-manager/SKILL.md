@@ -33,11 +33,11 @@ Memory Manager Skill
 
 | Task | Read This |
 |------|-----------|
-| Memory is getting stale / old facts are outdated | [FRESHNESS.md](FRESHNESS.md) |
-| Duplicate or overlapping memory found | [CONSOLIDATE.md](CONSOLIDATE.md) |
-| Obsolete facts need removal | [ARCHIVE.md](ARCHIVE.md) |
-| MEMORY.md index is out of sync | [INDEX.md](INDEX.md) |
-| Save a new discovery | [AUTOSAVE.md](AUTOSAVE.md) |
+| Memory is getting stale / old facts are outdated | [FRESHNESS](procedures/FRESHNESS.md) |
+| Duplicate or overlapping memory found | [CONSOLIDATE](procedures/CONSOLIDATE.md) |
+| Obsolete facts need removal | [ARCHIVE](procedures/ARCHIVE.md) |
+| MEMORY.md index is out of sync | [INDEX](procedures/INDEX.md) |
+| Save a new discovery | [AUTOSAVE](procedures/AUTOSAVE.md) |
 
 ---
 
