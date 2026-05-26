@@ -1,6 +1,9 @@
 {
   "model": "claude-haiku-4-5-20251001",
   "disableAgentView": true,
+  "env": {
+    "TERM": "xterm-256color"
+  },
   "statusLine": {
     "type": "command",
     "command": "bash /opt/claude-agent/.claude/statusline.sh"
