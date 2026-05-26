@@ -23,36 +23,37 @@ The skill is **agent-native**: no scripts, no CLI tools. Just reasoning + guidel
 ## What Agent Does (Always Active)
 
 ✅ **Auto-save** every discovery, pattern, decision, configuration learned
-✅ **Update** memory during task execution (not after)
-✅ **Check** freshness proactively; flag anything stale (>30 days for infra, >60 days for patterns)
-✅ **Rectify** obvious issues: fix timestamps, update links, resolve inconsistencies
-✅ **Consolidate** duplicates without asking if one clearly supercedes other
-✅ **Archive** outdated facts automatically (with justification)
-✅ **Verify** MEMORY.md index stays current (every session)
-✅ **Detect** gaps and propose new memory files
-✅ **Suggest** reorganization when patterns emerge
+✅ **Update** memory during task execution (proactively, don't wait)
+✅ **Modify** facts freely—update immediately when you learn something new
+✅ **Consolidate** duplicates and overlaps (merge, archive automatically)
+✅ **Archive** outdated facts immediately (move to history, keep git record)
+✅ **Rectify** inconsistencies on-the-fly (fix timestamps, links, structure)
+✅ **Reorganize** MEMORY.md when patterns suggest better structure
+✅ **Detect** gaps and create new memory files as needed
+✅ **Propose** improvements continuously (don't wait for formal audits)
 
-❌ **Lose** information: if uncertain, add to memory, never discard
-❌ **Delete** without archiving (preserve git history)
-❌ **Modify** facts without updating lastUpdated timestamp
-❌ **Expose** secrets in any form
+⚠️ **Careful**: If unsure about a fact, add it—better to have and verify later than lose it
+⚠️ **Preserve**: Always archive instead of delete (keep git history)
+⚠️ **Timestamp**: Update lastUpdated whenever you touch a file
+⚠️ **Secrets**: Never expose tokens, keys, env vars in any form
 
 ## Proactive Procedures (Do Without Asking)
 
-### Procedure 0: Auto-Save Discovery (During Any Task)
+### Procedure 0: Auto-Save Discovery (Always, During Work)
 
-**When**: Agent learns something new during work
+**When**: Agent learns ANYTHING new—immediately, mid-task
 
 **Steps**:
-1. Identify what was learned (infrastructure fact, pattern, preference, rule, incident)
-2. Determine memory file: use MEMORY.md to find location
-3. If file exists: use Edit to add/update (preserve structure)
-4. If file missing: create new file with frontmatter
-5. **Update lastUpdated to today** (critical for freshness tracking)
-6. Update MEMORY.md index if needed
-7. Silent success: don't announce unless file is NEW
+1. Identify what was learned (fact, pattern, preference, rule, incident)
+2. Find memory file: use MEMORY.md index OR create new file if missing
+3. **Update immediately**: Don't wait until task end
+4. If file exists: Edit to add/update (keep structure)
+5. If file missing: Write new file with frontmatter
+6. **Update lastUpdated = today** (always)
+7. Update MEMORY.md if file is new or structure changed
+8. No announcement needed (silent operation)
 
-**Why**: Memory grows during work, not in separate audits.
+**Why**: Memory evolves during work. Don't defer updates.
 
 ### Procedure 1: Proactive Freshness Check (Weekly or At Start)
 
@@ -99,20 +100,21 @@ The skill is **agent-native**: no scripts, no CLI tools. Just reasoning + guidel
 
 **Why**: Stale index defeats purpose of having one.
 
-### Procedure 4: Proactive Consolidation (When Pattern Detected)
+### Procedure 4: Consolidate Duplicates (Aggressively)
 
-**When**: Discover duplicate or overlapping memory
+**When**: Detect any overlap or duplication
 
 **Steps**:
-1. Compare files for overlap
-2. **Only consolidate if**: one file is clear superset of other
-3. Merge content into survivor file
-4. Update survivor's lastUpdated
-5. Archive loser file (move to archive/, don't delete)
-6. Update MEMORY.md
-7. Report: "Consolidated [file1] + [file2] → [survivor]"
+1. Identify overlapping facts/files
+2. **Merge into one**: Pick best-organized survivor, merge content from loser
+3. Update survivor's lastUpdated
+4. Archive loser file: move to `.claude/memory/archive/[YYYY-MM-DD]/[filename].md`
+5. Update MEMORY.md: remove loser, confirm survivor in index
+6. Report: "Merged [file1] + [file2] → [survivor]"
 
-**Why**: Duplicates confuse future lookups and slow down refresh.
+**Why**: Duplicates confuse lookups. One source of truth per fact.
+
+**Be aggressive**: If you see overlap, merge it. Don't wait.
 
 ### Procedure 5: Archive Outdated Facts (Auto-Decide)
 
@@ -161,15 +163,16 @@ Agent reports memory operations as natural, brief statements:
 - "Memory freshness: [X] current, [Y] stale"
 - "Proposal: [suggestion]"
 
-## Constraints
+## Guidelines (Not Restrictions)
 
-1. **Always index first**: MEMORY.md is source of truth
-2. **Never lose data**: Archive instead of delete
-3. **Timestamps matter**: Every write updates lastUpdated
-4. **Secrets protected**: Never expose tokens, keys, env vars
-5. **User intent respected**: If user explicitly saved something, don't archive without asking
-6. **Git history preserved**: Archived files go to history/, keeping full context
-7. **Proactive default**: Default to saving/updating, not waiting
+1. **Update freely**: If you learn something new, update memory immediately
+2. **Archive, don't delete**: Move outdated facts to history/ (preserve git record)
+3. **Timestamp every write**: lastUpdated = today when you modify anything
+4. **Protect secrets always**: Never expose tokens, keys, env vars
+5. **MEMORY.md is gospel**: Index reflects current structure; keep it in sync
+6. **Consolidate aggressively**: Merge overlaps and duplicates without asking
+7. **Rectify on-the-fly**: Fix broken links, inconsistencies, stale timestamps immediately
+8. **Embrace evolution**: Memory improves continuously, not through approval gates
 
 ## Related Concepts
 
