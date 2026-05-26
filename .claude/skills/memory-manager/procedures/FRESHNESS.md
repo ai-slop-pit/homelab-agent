@@ -7,7 +7,7 @@
 **When**: Beginning of session OR after major task batch
 
 **Steps**:
-1. Load MEMORY.md and check lastUpdated on all files
+1. Load memory/MEMORY.md and check lastUpdated on all files
 2. Calculate: age_days = today - lastUpdated
 3. **Flag stale**:
    - Infrastructure/config: >30 days
@@ -28,11 +28,11 @@
 
 ## Example
 
-You see: server_infrastructure.md hasn't been updated in 45 days
+Found: memory/feedback_git_workflow.md lastUpdated: 2026-04-01 (56 days old)
 
 **Action**:
 1. Read the file
-2. Check: Are IPs/mounts/services still accurate?
+2. Verify: Is the rule still accurate?
 3. If yes: Update lastUpdated = today
 4. If no: Update facts + lastUpdated
 5. Done

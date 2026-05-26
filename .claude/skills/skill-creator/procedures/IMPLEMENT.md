@@ -12,10 +12,12 @@
    ```
    .claude/skills/<skill-name>/
    ├── SKILL.md
-   └── procedures/
-       ├── TASK-1.md
-       ├── TASK-2.md
-       └── TASK-3.md
+   ├── procedures/
+   │   ├── TASK-1.md
+   │   ├── TASK-2.md
+   │   └── TASK-3.md
+   └── scripts/ (optional: helper utilities)
+       └── helper.sh
    ```
 
 2. **Write SKILL.md** (25-30 lines max)
@@ -38,23 +40,38 @@
    - Routing table matches files? ✓
    - Total: 25-30 (SKILL.md) + 40-50 per procedure = ~250-300 lines ✓
 
-## Example: App-Health-Monitor Implementation
+## Example: App-Health-Monitor
 
-**Directory structure**:
+Create in order:
+1. SKILL.md (22 lines: frontmatter + identity + 2 essentials + routing)
+2. procedures/DIAGNOSE.md (48 lines: real example from pattern)
+3. procedures/SETUP.md (46 lines)
+4. procedures/INTEGRATE.md (44 lines)
+
+Result: ~160 lines total (well under 250-300 budget)
+
+## Skill Description Pattern
+
+All skill descriptions follow **When → What → Why**:
+
 ```
-.claude/skills/app-health-monitor/
-├── SKILL.md (22 lines)
-├── procedures/
-│   ├── DIAGNOSE.md (48 lines)
-│   ├── SETUP.md (46 lines)
-│   └── INTEGRATE.md (44 lines)
+When: <activation trigger>
+What: <core operation>
+Why: <value/motivation>
 ```
 
-**File creation order**:
-1. SKILL.md (front-load the routing)
-2. procedures/DIAGNOSE.md (most common task)
-3. procedures/SETUP.md (setup task)
-4. procedures/INTEGRATE.md (advanced use)
+**Frontmatter (80-120 chars)**:
+```yaml
+description: "When: <trigger>. What: <operation>. Why: <value>"
+```
+
+**Examples**:
+- `infrastructure`: "When: Need container/hardware/storage info. What: Unified Proxmox access. Why: Single source of truth."
+- `skill-creator`: "When: 3+ repetitions. What: Pattern detection → skill design → implementation. Why: Extract reusable automation."
+
+Apply this pattern to all new skills for consistency.
+
+---
 
 ## After Implementation
 

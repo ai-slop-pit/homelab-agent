@@ -1,33 +1,18 @@
 ---
 name: memory-manager
-description: Maintain persistent memory. Auto-save discoveries, keep memory fresh. See reference files for specific tasks.
+description: When: Starting work (read) or learning something (write). What: Access .claude/memory/, load relevant files, save discoveries immediately. Why: Build persistent learnings across sessions.
 disable-model-invocation: false
 ---
 
-Memory Manager Skill
+# Memory Manager
 
-**Agent is memory-aware. Update memory continuously during work.**
+**Memory evolves continuously. Read always, write immediately, keep fresh.**
 
-## The Essentials
+## Essentials
 
-### 1. Read Memory (Always First)
-```
-1. Load: .claude/memory/MEMORY.md (the index)
-2. Find: Which file has what I need?
-3. Read: Load that file
-4. Use: Extract fact/pattern/rule
-```
+**Read**: Load memory/MEMORY.md (index) → find relevant file → extract fact.
 
-### 2. Write/Update Memory (Immediately)
-```
-1. Learn something new? Write it.
-2. Find relevant file (use MEMORY.md index)
-3. Edit or create file with frontmatter
-4. Update lastUpdated = today
-5. Update MEMORY.md index if needed
-```
-
----
+**Write**: Learn something? Write to memory immediately. Update file, refresh memory/MEMORY.md.
 
 ## For Specific Tasks
 

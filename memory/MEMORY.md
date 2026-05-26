@@ -3,13 +3,10 @@
 Use this when you recognize a task type. Always check index first before reading files.
 
 **Infrastructure work** (troubleshoot, status, access)
-→ [server_infrastructure.md](server_infrastructure.md) — containers, IPs, commands, mounts
-
-**Capacity/upgrade planning**
-→ [hardware_specs.md](hardware_specs.md) — CPU, RAM, storage specs, expansion limits
+→ Use `/infrastructure` skill — containers, IPs, commands, mounts, hardware specs
 
 **Storage/disk work**
-→ [server_infrastructure.md](server_infrastructure.md) + [incident_boot_failure_sda_removal.md](incident_boot_failure_sda_removal.md) — device renaming gotcha
+→ Use `/infrastructure` skill + [incident_boot_failure_sda_removal.md](incident_boot_failure_sda_removal.md) — device renaming gotcha
 
 **Security-sensitive work**
 → **FIRST**: [feedback_never_expose_secrets.md](feedback_never_expose_secrets.md) — critical rules (THEN load task-specific files)
@@ -44,10 +41,7 @@ Use this when you recognize a task type. Always check index first before reading
 
 ## Full Memory Index
 
-**Infrastructure & Operations**:
-- [Complete server infrastructure (READ FIRST!)](server_infrastructure.md) — Containers, IPs, commands, mounts, workflows, disk health (updated 2026-05-26)
-- [Hardware specs](hardware_specs.md) — CPU (i7-10700 8c/16t), RAM (16GB, 64GB max), storage (3.6TB HDD + 512GB NVMe), Proxmox 9.1.9
-- [Quick reference (pointer)](core_infrastructure.md) — Fast lookup for container IPs + SSH. See server_infrastructure.md for full details.
+**Operations & Incidents**:
 - [Device renaming gotcha](incident_boot_failure_sda_removal.md) — When removing disks, Linux renumbers (sdb→sda). Must update fstab before reboot.
 
 **Feedback & Rules**:

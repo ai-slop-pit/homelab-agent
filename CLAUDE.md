@@ -21,21 +21,29 @@ This is not a separate process — it happens during normal work.
 
 ## Architecture
 
-**One unified brain, three input channels:**
+**One unified brain, persistent learnings and toolkit:**
 
 ```
          Memory (persistent learnings)
               ↑↓
-    CLI  ← Agent → Telegram
+         Agent
               ↓
          Skills (toolkit)
 ```
 
-- **CLI** (primary): Direct reasoning, full autonomy
-- **Telegram** (secondary): Casual task submission
-- **Monitors** (background): Proactive anomaly detection, pattern spotting
+- **CLI**: Direct reasoning, full autonomy
+- **Memory**: Shared learnings across sessions
+- **Skills**: Growing toolkit, autonomous execution
 
-All channels read/write to shared memory and skill library.
+All read/write to shared memory and skill library.
+
+---
+
+## Git & Version Control
+
+- Never commit without asking first
+- Always ask: "Ready to commit?" + summarize changes
+- User decides approval, timing, and message
 
 ---
 

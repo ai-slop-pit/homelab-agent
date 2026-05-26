@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Discover reusable patterns in work. Propose, draft, and implement new skills autonomously. See procedures/ for specific tasks.
+description: "When: 3+ repetitions of same problem. What: Pattern detection → skill design → implementation → monitoring. Why: Extract reusable patterns into autonomous skills."
 disable-model-invocation: false
 ---
 
@@ -8,55 +8,22 @@ disable-model-invocation: false
 
 **Agent detects patterns, proposes new skills, implements them declaratively.**
 
-## The Essentials
+## Essentials
 
-### 1. Detect Patterns (During Work)
-```
-Watch for repetition:
-1. Same problem solved 3+ times → pattern detected
-2. Identify the generic problem class
-3. Ask: "Is this worth a dedicated skill?"
-4. If yes → trigger Propose
-```
-
-### 2. Propose & Draft (Schema-First)
-```
-1. Analyze: What is the core procedure?
-2. Design: What inputs/outputs? When triggered?
-3. Draft SKILL.md with frontmatter + essentials
-4. Plan: What reference procedures are needed?
-5. Present to user with reasoning
-```
-
-### 3. Implement Fast-Path (Declarative)
-```
-1. Create skill directory: .claude/skills/<name>/
-2. Write SKILL.md (25-30 lines, essentials only)
-3. Draft procedures/ files (40-50 lines each)
-4. Test: Does it work for the original problem?
-5. Deploy to git
-```
-
----
+**Detect Patterns**: 3+ repetitions? Read [DETECT](procedures/DETECT.md).
+**Analyze & Propose**: Characterized problem? Read [ANALYZE](procedures/ANALYZE.md) and [PROPOSE](procedures/PROPOSE.md).
+**Implement & Monitor**: Ready? Read [IMPLEMENT](procedures/IMPLEMENT.md) then [MONITOR](procedures/MONITOR.md).
 
 ## For Specific Tasks
 
 | Task | Read This |
 |------|-----------|
-| Detecting patterns in work | [DETECT](procedures/DETECT.md) |
-| Analyzing and characterizing problems | [ANALYZE](procedures/ANALYZE.md) |
-| Drafting SKILL.md and procedures | [PROPOSE](procedures/PROPOSE.md) |
-| Creating the skill directory structure | [IMPLEMENT](procedures/IMPLEMENT.md) |
-| Monitoring skill effectiveness | [MONITOR](procedures/MONITOR.md) |
-
----
+| Pattern repeats 3+ times. Is it worth a skill? | [DETECT](procedures/DETECT.md) |
+| Characterize the generic problem | [ANALYZE](procedures/ANALYZE.md) |
+| Draft SKILL.md design (schema-first) | [PROPOSE](procedures/PROPOSE.md) |
+| Create directory structure and write files | [IMPLEMENT](procedures/IMPLEMENT.md) |
+| Track usage, evolve based on feedback | [MONITOR](procedures/MONITOR.md) |
 
 ## Key Principle
 
-**Skills emerge through work, not pre-design.** Detect gaps, propose solutions, deploy declaratively, evolve continuously.
-
----
-
-## See Also
-
-[STRUCTURE.md](../STRUCTURE.md) — canonical skill directory layout (SKILL.md + procedures/ + optional templates/examples/schemas/)
+**Skills emerge through work, not pre-design.** Detect gaps, propose solutions, implement declaratively, evolve continuously.

@@ -23,16 +23,9 @@
 
 ## Example
 
-**Before** (out of sync):
+Entry format:
 ```markdown
-- [Infrastructure](server_infrastructure.md) — Old description
-- [Stale Incident](old-incident.md) — (but file doesn't exist)
-```
-
-**After** (current):
-```markdown
-- [Infrastructure](server_infrastructure.md) — Containers, IPs, storage, updated 2026-05-26
-- [Resolved Incident](archive/2026-05-20/incident.md) — Archived because resolved
+- [Device renaming gotcha](incident_boot_failure_sda_removal.md) — When removing disks, Linux renumbers (sdb→sda). Must update fstab before reboot.
 ```
 
 Index = Source of truth. Keep it accurate.

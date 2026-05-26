@@ -53,28 +53,8 @@
 - Month 3: Monitoring reveals 80% of failures are disk space
   → Refine DIAGNOSE.md with disk space check as priority 1
 
-## Monitoring Artifacts
+## What to Look For
 
-Track in `logs/skill-monitor/`:
-```
-[YYYY-MM-DD] app-health-monitor
-INVOCATIONS: 7 this month
-SUCCESS_RATE: 6/7 (86%)
-FEEDBACK: "Saved 30 min troubleshooting time on Jellyfin crash"
-NEXT_REVIEW: 2026-06-27
-EVOLUTION_NEEDED: Refine disk-space diagnostics
-```
-
-## When to Archive
-
-**Deprecate a skill when**:
-- Used 0 times in 90 days
-- Functionality superseded by newer skill
-- Problem was temporary (deployment-specific)
-- User feedback: "Not useful"
-
-Move to `skills/.archive/` with note explaining deprecation.
-
----
-
-**Monitoring is continuous.** After initial 2-week evaluation, check monthly.
+- **5+ uses/month**: Strong signal (keep evolving)
+- **1-2 uses/month**: Weak signal (needs refinement or deprecation)
+- **0 uses in 90 days**: No longer needed

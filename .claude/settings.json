@@ -13,7 +13,7 @@
       "Edit",
       "Write",
       "Read",
-      "Grep",:uniq:
+      "Grep",
       "Bash(git *)",
       "Bash(gh *)",
       "Bash(find *)",

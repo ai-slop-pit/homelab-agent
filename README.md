@@ -1,53 +1,37 @@
 # Claude Home Agent — CT 112
 
-Simple message listener that learns by working.
-
-**Architecture**:
-```
-Telegram → bot.js → spawn 'claude --message' → response
-```
-
-## Quick Start
-
-```bash
-# Start the bot
-BOT_TOKEN=<your-token> node channels/telegram/bot.js
-```
-
-The bot listens for messages, processes them with Claude Code, and sends responses back.
+Autonomous homelab assistant that learns by working.
 
 ## What It Does
 
-- **Listen** for Telegram messages
-- **Process** each message via Claude CLI
-- **Respond** with results
-- **Learn** patterns through memory and skills
-
-No state management. No approval gates. No batch processing. Stateless and simple.
+- **Executes** tasks via Claude Code CLI
+- **Learns** patterns from work via memory and skills
+- **Evolves** by extracting reusable automation
 
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** — Core philosophy: learning loop & operating principles
 - **[SOUL.md](SOUL.md)** — Agent personality & communication style
-- **[SKILLS.md](SKILLS.md)** — How skills evolve through work
-- **[INFRASTRUCTURE.md](INFRASTRUCTURE.md)** — Home lab reference (Proxmox, containers)
+- **`skills/`** — Growing toolkit (skill-creator, infrastructure, memory-manager, investigate)
+- **`skills/skill-creator/`** — How skills evolve through work
 
 ## Structure
 
 ```
 /opt/claude-agent/
-├── channels/telegram/    # Telegram bot (listener)
-├── skills/              # Growing toolkit
-├── memory/              # Persistent learnings
-└── .claude/             # Claude Code settings
+├── .claude/skills/      # Growing toolkit (skill-creator, infrastructure, etc.)
+└── (documentation: CLAUDE.md, SOUL.md, README.md)
+
+/root/.claude/projects/-opt-claude-agent/
+└── memory/              # Persistent learnings (MEMORY.md index + individual memory files)
 ```
 
 ## Memory & Learning
 
-Agent learnings live in `memory/MEMORY.md`:
-- Infrastructure facts
+Agent learnings live in `/root/.claude/projects/-opt-claude-agent/memory/MEMORY.md`:
+- Infrastructure facts (via `/infrastructure` skill)
 - Past patterns and solutions
 - Rules and constraints
 - Domain knowledge
 
-Skills emerge from work, not manual design.
+Skills emerge from work (via `/skill-creator`), not manual design.

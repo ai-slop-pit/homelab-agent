@@ -28,48 +28,25 @@
    - SETUP.md: How to enable continuous monitoring
    - INTEGRATE.md: How to trigger on crashes
 
-## Example: Proposed App-Health-Monitor Skill
+## Example: App-Health-Monitor Skill
 
-```markdown
----
-name: app-health-monitor
-description: Diagnose app failures by analyzing logs and metrics.
-disable-model-invocation: false
----
+**Pattern**: Diagnosed 3 app failures (same approach each time)
+**Generic problem**: Systematically identify app failure root causes
+**Skill name**: `app-health-monitor`
 
-# App Health Monitor
-
-**Systematically identify root causes of app failures.**
-
-## The Essentials
-
-### 1. Diagnose an App Issue
-[Quick steps: which app? what symptoms? analyze logs]
-
-### 2. Set Up Continuous Monitoring
-[Enable health checks, set alert thresholds]
-
-## For Specific Tasks
-
-| Task | Read This |
-|------|-----------|
-| App is down, find root cause | [DIAGNOSE](procedures/DIAGNOSE.md) |
-| Set up monitoring for an app | [SETUP](procedures/SETUP.md) |
-| Integrate with crash alerts | [INTEGRATE](procedures/INTEGRATE.md) |
-
-## Key Principle
-
-**Diagnose before fixing. Root cause identification prevents recurrence.**
-```
+**Proposed SKILL.md** (sketch):
+- Identity: "Diagnose app failures by analyzing logs and metrics"
+- Essentials: 1) Diagnose issue, 2) Set up monitoring
+- Routing: DIAGNOSE.md, SETUP.md, INTEGRATE.md
+- Principle: "Diagnose before fixing"
 
 ## Proposal Presentation
 
-Present to user with:
-- **Problem**: "Detected app health diagnostics pattern (3+ occurrences)"
-- **Skill name**: `app-health-monitor`
-- **Expected value**: "Saves troubleshooting time, enables proactive monitoring"
-- **Ready to implement**: Show the draft SKILL.md
-- **Ask**: "Shall I implement this?"
+Present to user:
+- Problem detected (3+ occurrences)
+- Skill name and description
+- Value proposition
+- Ask: "Shall I implement?"
 
 ## After Proposal
 

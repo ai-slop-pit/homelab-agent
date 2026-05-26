@@ -32,13 +32,13 @@ Content starts here.
 
 ## Example
 
-**During work, you learn**: "CT 110 storage expanded from 100GB to 500GB"
+Learn: "qBittorrent downloads now go to new location"
 
 **Action**:
-1. Find: MEMORY.md → Infrastructure section
-2. Open: server_infrastructure.md
-3. Update: Change 100GB → 500GB
-4. Timestamp: Update lastUpdated = today
+1. Find: memory/MEMORY.md → relevant section
+2. Open: memory/feedback_remember_important.md or create new memory file
+3. Add/update: Fact + lastUpdated = today
+4. Update: memory/MEMORY.md index if new file created
 5. Done
 
 ## Key Rule
