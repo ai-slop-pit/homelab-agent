@@ -57,12 +57,6 @@ Watch for repetition:
 
 ---
 
-## Structure & Organization
+## See Also
 
-See **[STRUCTURE.md](../STRUCTURE.md)** for canonical skill directory layout and directory semantics.
-
-**skill-creator itself exemplifies the full structure**:
-- `SKILL.md` — this file
-- `procedures/` — five how-to guides (DETECT, ANALYZE, PROPOSE, IMPLEMENT, MONITOR)
-- `templates/` — reusable templates (SKILL-template.md, procedure-template.md)
-- `examples/` — concrete walkthroughs (app-health-monitor, log-analyzer)
+[STRUCTURE.md](../STRUCTURE.md) — canonical skill directory layout (SKILL.md + procedures/ + optional templates/examples/schemas/)

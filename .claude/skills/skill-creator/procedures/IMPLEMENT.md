@@ -2,40 +2,41 @@
 
 **When to use this: Proposal approved. Create the skill directory and files.**
 
-## Procedure: Create Skill Structure
+## Procedure: Scaffold & Implement Skill
 
-**When**: User approves new skill; ready to implement.
+**When**: User approves new skill; ready to create directory structure.
 
 **Fast-Path Implementation**:
-1. **Create directory**: `.claude/skills/<skill-name>/`
-   ```bash
-   mkdir -p .claude/skills/app-health-monitor/{procedures}
+
+1. **Create directory structure**:
+   ```
+   .claude/skills/<skill-name>/
+   ├── SKILL.md
+   └── procedures/
+       ├── TASK-1.md
+       ├── TASK-2.md
+       └── TASK-3.md
    ```
 
 2. **Write SKILL.md** (25-30 lines max)
-   - Frontmatter: `name`, `description`, `disable-model-invocation`
+   - Frontmatter: `name`, `description`, `disable-model-invocation: false`
    - One-sentence identity
    - 2-3 essential use cases
    - Routing table (task → procedure file)
-   - Key principle
+   - Key principle (one sentence)
 
-3. **Plan procedure files** (40-50 lines each)
-   - One file per use case
-   - Clear heading: "Task X" or "When Y"
-   - "When to use" section
-   - Step-by-step procedure
+3. **Create procedure files** (40-50 lines each)
+   - One file per task/use case
+   - Structure: heading + "When to use" + Procedure + Example + links
    - Real example from the pattern that triggered the skill
-   - Link to next procedure or back to SKILL.md
+   - Action-verb naming: DIAGNOSE.md, SETUP.md, not PROCEDURE-1.md
+   - Link back to SKILL.md
 
-4. **Procedure naming** (action-verb style)
-   - DIAGNOSE.md, SETUP.md, MONITOR.md (not PROCEDURE-1.md)
-   - Match the task names in the routing table
-
-5. **Validation**:
-   - Can agent use SKILL.md alone to understand when/how to use it?
-   - Does each procedure have a concrete example?
-   - Are routing links in SKILL.md accurate?
-   - Total skill size ~250-300 lines (lean but complete)?
+4. **Quick validation**:
+   - SKILL.md alone sufficient? (reader understands when/how without other files)
+   - Each procedure has concrete example? ✓
+   - Routing table matches files? ✓
+   - Total: 25-30 (SKILL.md) + 40-50 per procedure = ~250-300 lines ✓
 
 ## Example: App-Health-Monitor Implementation
 
