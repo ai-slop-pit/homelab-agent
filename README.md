@@ -18,10 +18,9 @@ node agent/core.js
 node agent/proposer.js
 ```
 
-## What Is This?
-
-A unified autonomous agent that:
-- Runs on your home lab (Proxmox, containers, services)
+## What Is This?:> A unified autonomous agent that:
+- Runs on your home lab (Proxmox, containert
+:> :> , services)
 - Listens via Telegram for tasks
 - Learns from every execution
 - Proposes new automations as patterns emerge

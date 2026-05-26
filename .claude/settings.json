@@ -1,6 +1,5 @@
 {
   "model": "claude-haiku-4-5-20251001",
-  "disableAgentView": true,
   "env": {
     "TERM": "xterm-256color"
   },
