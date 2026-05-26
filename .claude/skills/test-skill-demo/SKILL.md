@@ -1,3 +1,9 @@
+---
+name: test-skill-demo
+description: Demo skill for testing skill system functionality and frontmatter loading.
+disable-model-invocation: false
+---
+
 # test-skill-demo
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+name: app-health-monitor
+description: Monitor apps for failures, crashes, or silent errors. Detects unhealthy states, suggests fixes, reports vitals.
+disable-model-invocation: false
+---
+
 # app-health-monitor
 
 ## Purpose

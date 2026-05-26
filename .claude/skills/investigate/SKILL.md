@@ -1,3 +1,9 @@
+---
+name: investigate
+description: Research current topics, verify facts, gather info outside knowledge cutoff (Feb 2025). Auto-delegate web lookups and real-time data via Gemini CLI.
+disable-model-invocation: false
+---
+
 # Investigate Skill
 
 **Research, verification, and current information lookup via Gemini CLI.**

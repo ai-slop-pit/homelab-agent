@@ -1,3 +1,9 @@
+---
+name: memory-manager
+description: Analyze and maintain persistent memory files. Detect duplicates, staleness, gaps. Propose consolidations, track memory effectiveness, evolve organization.
+disable-model-invocation: false
+---
+
 Memory Manager Skill
 
 **Agent autonomously maintains persistent memory through reasoning, analysis, and guided updates.**
