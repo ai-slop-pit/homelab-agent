@@ -2,12 +2,6 @@
 
 Use this when you recognize a task type. Always check index first before reading files.
 
-**Infrastructure work** (troubleshoot, status, access)
-→ Use `/infrastructure` skill — containers, IPs, commands, mounts, hardware specs
-
-**Storage/disk work**
-→ Use `/infrastructure` skill + [incident_boot_failure_sda_removal.md](incident_boot_failure_sda_removal.md) — device renaming gotcha
-
 **Security-sensitive work**
 → **FIRST**: [feedback_never_expose_secrets.md](feedback_never_expose_secrets.md) — critical rules (THEN load task-specific files)
 
@@ -17,8 +11,8 @@ Use this when you recognize a task type. Always check index first before reading
 **Git/code commits**
 → [feedback_git_workflow.md](feedback_git_workflow.md) — approval requirement
 
-**Skill/automation development**
-→ [skill_architecture_best_practices.md](skill_architecture_best_practices.md) — agent-native pattern
+**Any Neovim config work** (plugins, settings, colorscheme)
+→ [nvim_config_location.md](nvim_config_location.md) FIRST — config is NOT at default path
 
 **General work** (remembering context, patterns)
 → [feedback_remember_important.md](feedback_remember_important.md) + [feedback_memory_discipline.md](feedback_memory_discipline.md)
@@ -41,15 +35,19 @@ Use this when you recognize a task type. Always check index first before reading
 
 ## Full Memory Index
 
-**Operations & Incidents**:
-- [Device renaming gotcha](incident_boot_failure_sda_removal.md) — When removing disks, Linux renumbers (sdb→sda). Must update fstab before reboot.
+**Configuration & Locations**:
+- [Neovim config location](nvim_config_location.md) — Config is at `/opt/claude-agent/.config/nvim/` (XDG_CONFIG_HOME override), NOT `/root/.config/nvim/`
+
+**User Preferences & Configuration**:
+- [Theme preference](user_theme_preference.md) — Ultimate Dark Neo (Zed editor theme)
+- [CT 112 Shell Enhancements](shell_enhancements_ct112.md) — bash-completion, fzf (Ctrl+R fuzzy history), cheat.sh (? <cmd> command help)
 
 **Feedback & Rules**:
 - [Remember important things](feedback_remember_important.md) — Save infrastructure, config, preferences, decisions, patterns. Ask if unsure.
 - [CRITICAL: Secrets in .env only](feedback_never_expose_secrets.md) — Never expose tokens/keys in command line args, history, or logs
 - [Git workflow rule](feedback_git_workflow.md) — Always ask user approval before committing to GitHub
 - [Memory discipline rule](feedback_memory_discipline.md) — Read memory before ANY server work; update immediately after discovery
+- [Show memory diffs](feedback_show_memory_diffs.md) — Always show a diff when writing/editing memory files
 
 **Systems & Processes**:
 - [Setup Task Learning](setup_task_learning.md) — Extract bot IDs, API keys, config from setup tasks → persist in `.claude/setup-artifacts/` + index in `.claude/ARTIFACTS.md`
-- [Skill Architecture Best Practices](skill_architecture_best_practices.md) — Build agent-native skills (reasoning + guidelines), not executables

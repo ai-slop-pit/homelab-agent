@@ -1,11 +1,9 @@
 ---
-name: never_expose_secrets_in_commands
+name: feedback_never_expose_secrets
 description: "CRITICAL: Never use pure tokens/secrets in command line arguments or examples"
-metadata: 
-  node_type: memory
+metadata:
   type: feedback
-  originSessionId: de0c7c6b-2440-4a39-be3a-d395a886b113
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 ## Rule: Never expose secrets in commands

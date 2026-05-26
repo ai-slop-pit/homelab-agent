@@ -1,11 +1,9 @@
 ---
-name: memory-discipline
+name: feedback_memory_discipline
 description: Always remember and save server/infrastructure details to avoid surprises in future conversations
-metadata: 
-  node_type: memory
+metadata:
   type: feedback
-  originSessionId: 99a35177-3c24-4e09-824f-d31aa0010bce
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 **Rule**: Before starting ANY work on the server or home lab, READ the memory files. Document ALL infrastructure details, container setups, storage configurations, and service mappings immediately after setup or discovery.

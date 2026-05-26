@@ -29,3 +29,12 @@ disable-model-invocation: false
 ## Key Principle
 
 **Memory evolves, not preserved.** Update immediately. Don't wait for approval.
+
+## Archive Policy
+
+Archive is a **last resort** — use only when:
+- Agent is desperate and needs to clear noise from active memory
+- User explicitly requests archival of specific memories
+- Facts are genuinely obsolete (>90 days old, superseded, service removed)
+
+Archive preserves git history but removes from daily navigation. See [ARCHIVE](procedures/ARCHIVE.md) for procedure.

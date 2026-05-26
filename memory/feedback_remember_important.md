@@ -1,11 +1,9 @@
 ---
-name: remember-important-things
+name: feedback_remember_important
 description: "Always remember and save important context, decisions, setups, patterns"
-metadata: 
-  node_type: memory
+metadata:
   type: feedback
-  originSessionId: 99a35177-3c24-4e09-824f-d31aa0010bce
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 **Rule**: Remember ALL important things. If unsure whether something is important, ask the user if they want you to remember it.

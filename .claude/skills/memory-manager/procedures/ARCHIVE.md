@@ -1,10 +1,18 @@
 # Archival
 
-**When facts become obsolete and should be removed.**
+**Last resort: move obsolete facts to archive when desperate or explicitly requested.**
+
+## When to Archive
+
+- Agent is drowning in active memory noise and needs cleanup
+- User explicitly says "archive this"
+- Fact is genuinely obsolete (superseded, service removed, no longer applicable)
+- Don't archive just because memory is old — age alone doesn't matter; relevance does
+- Don't archive unless really necessary — keep decisions, lessons, preferences active
 
 ## Procedure: Archive Outdated Facts
 
-**When**: Fact is no longer relevant OR contradicted by newer info
+**When**: Fact is no longer relevant OR contradicted by newer info AND cleanup is needed
 
 **Steps**:
 1. Identify obsolete fact/file

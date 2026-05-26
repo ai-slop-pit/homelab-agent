@@ -1,11 +1,9 @@
 ---
-name: incident-boot-failure-device-renaming
+name: incident_boot_failure_sda_removal
 description: Server failed to boot after removing old 1TB HDD - device renaming issue in fstab
-metadata: 
-  node_type: memory
+metadata:
   type: project
-  originSessionId: 99a35177-3c24-4e09-824f-d31aa0010bce
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 ## Incident: Boot Failure (May 25, 2026)

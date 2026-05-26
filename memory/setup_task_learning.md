@@ -1,11 +1,9 @@
 ---
-name: setup-task-learning-system
+name: setup_task_learning
 description: Capture and recall configuration artifacts from setup tasks to avoid rediscovery
-metadata: 
-  node_type: memory
+metadata:
   type: feedback
-  originSessionId: 7eb63f90-4cb2-43b5-bdc0-4164335dfb96
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 ## Rule: Setup Task Learning System

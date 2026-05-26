@@ -1,11 +1,9 @@
 ---
-name: git_workflow_approval
+name: feedback_git_workflow
 description: Agent commits/pushes after milestones but always asks for approval first
-metadata: 
-  node_type: memory
+metadata:
   type: feedback
-  originSessionId: 9373101b-a404-44de-9dfa-c8430c9a05e5
-  lastUpdated: 2026-05-26
+  created: 2026-05-26
 ---
 
 **Rule**: After milestones (task completion, skill creation, major learnings), propose a commit/push to https://github.com/ai-slop-pit/homelab-agent. Always ask for approval before executing.
