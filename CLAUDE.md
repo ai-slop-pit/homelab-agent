@@ -43,8 +43,8 @@ All channels read/write to shared memory and skill library.
 
 Skills don't come pre-built. They **emerge from work**.
 
-**Month 1**: You give tasks → Agent executes them  
-**Month 2**: Agent detects patterns → Proposes new skills  
-**Month 3+**: Skills mature → Agent refines them based on feedback  
+**Phase 1**: You give tasks → Agent executes them  
+**Phase 2**: Agent detects patterns → Proposes new skills  
+**Phase 3**: Skills mature → Agent refines based on feedback  
 
-End state: You never built a skill manually. They all grew naturally.
+End state: You never wrote a skill manually. They all grew naturally.
