@@ -1,9 +1,7 @@
 node_modules/
 .env
 *.log
-
-# Ephemeral runtime state
-state/
+# Ephemeral runtime state state/
 logs/
 
 # Local Claude Code overrides

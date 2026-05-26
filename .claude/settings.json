@@ -142,18 +142,5 @@
       "Bash(rmdir /opt/claude-agent*)"
     ],
     "deny": []
-  },
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/opt/claude-agent/.claude/scripts/hooks/post-task.sh"
-          }
-        ]
-      }
-    ]
   }
 }
