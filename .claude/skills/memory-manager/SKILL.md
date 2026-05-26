@@ -1,152 +1,186 @@
 ---
 name: memory-manager
-description: Analyze and maintain persistent memory files. Detect duplicates, staleness, gaps. Propose consolidations, track memory effectiveness, evolve organization.
+description: Proactively maintain and evolve persistent memory. Auto-save discoveries, detect staleness, rectify inconsistencies, keep memory fresh and accurate.
 disable-model-invocation: false
 ---
 
 Memory Manager Skill
 
-**Agent autonomously maintains persistent memory through reasoning, analysis, and guided updates.**
+**Agent continuously evolves memory through work, without waiting to be asked.**
 
 ## Identity
 
-Memory-manager is a **behavioral capability**, not a tool. The agent embodies this skill by:
-- Analyzing memory files for quality issues (duplicates, staleness, gaps)
-- Proposing improvements to the user
-- Integrating feedback into memory structure
-- Tracking which memory helps solve which problems
-- Evolving memory organization over time
+Memory-manager is a **behavioral capability**, not a tool. The agent embodies this by:
+- **Auto-saving** discoveries during every task (don't wait for user)
+- **Proactively** checking memory freshness and rectifying stale content
+- **Detecting** duplicates and inconsistencies, then fixing them
+- **Keeping** MEMORY.md index always current and accurate
+- **Building** semantic understanding of which memory solves which problems
+- **Proposing** consolidations, archival, and improvements automatically
 
-The skill is **agent-native**: no scripts, no CLI tools. Just reasoning + guidelines + heuristics.
+The skill is **agent-native**: no scripts, no CLI tools. Just reasoning + guidelines.
 
-## What Agent Does (Scope)
+## What Agent Does (Always Active)
 
-✅ **Analyze** memory files for duplicates, staleness, unused content
-✅ **Propose** consolidations (only if one is superset of other)
-✅ **Validate** freshness using TTL rules from heuristics.json
-✅ **Track** which files solved which problems (feedback loops)
-✅ **Update** memory when user provides corrections or new info
-✅ **Archive** resolved incidents to history/ with timestamps
-✅ **Build** semantic map (task → memory files)
-✅ **Suggest** improvements when patterns detected
+✅ **Auto-save** every discovery, pattern, decision, configuration learned
+✅ **Update** memory during task execution (not after)
+✅ **Check** freshness proactively; flag anything stale (>30 days for infra, >60 days for patterns)
+✅ **Rectify** obvious issues: fix timestamps, update links, resolve inconsistencies
+✅ **Consolidate** duplicates without asking if one clearly supercedes other
+✅ **Archive** outdated facts automatically (with justification)
+✅ **Verify** MEMORY.md index stays current (every session)
+✅ **Detect** gaps and propose new memory files
+✅ **Suggest** reorganization when patterns emerge
 
-❌ **Delete** memory without explicit user approval
-❌ **Modify** memory facts without user confirmation
-❌ **Expose** secrets or sensitive info in reports
-❌ **Consolidate** unless one file is clear superset
+❌ **Lose** information: if uncertain, add to memory, never discard
+❌ **Delete** without archiving (preserve git history)
+❌ **Modify** facts without updating lastUpdated timestamp
+❌ **Expose** secrets in any form
 
-## Agent Procedures
+## Proactive Procedures (Do Without Asking)
 
-### Procedure 0: Read Index First
+### Procedure 0: Auto-Save Discovery (During Any Task)
 
-**Every memory operation starts here**:
-
-**Steps**:
-1. Read `.claude/memory/MEMORY.md` (the index)
-2. Use index to locate relevant files by task/category
-3. Read only the files you need (not all files)
-4. Use MEMORY.md as source-of-truth for what exists
-
-**Why**: Index prevents unnecessary reads and reveals file organization immediately.
-
-### Procedure 1: Memory Audit (Full Analysis)
-
-**When**: User requests "Audit the memory" or agent initiates monthly check
+**When**: Agent learns something new during work
 
 **Steps**:
-1. **Read index**: Load MEMORY.md to understand structure
-2. **Read metadata**: Load all memory file frontmatter (name, description, type, lastUpdated)
-3. **Detect duplicates**: Compare file descriptions using heuristics.json thresholds
-4. **Validate freshness**: Check lastUpdated timestamps against heuristics.json TTLs
-5. **Analyze index**: Check if MEMORY.md mappings are accurate and complete
-6. **Report findings**: Analyze for duplicates, staleness, gaps, index drift
-7. **Propose actions**: Consolidate, archive, refresh, or update MEMORY.md
+1. Identify what was learned (infrastructure fact, pattern, preference, rule, incident)
+2. Determine memory file: use MEMORY.md to find location
+3. If file exists: use Edit to add/update (preserve structure)
+4. If file missing: create new file with frontmatter
+5. **Update lastUpdated to today** (critical for freshness tracking)
+6. Update MEMORY.md index if needed
+7. Silent success: don't announce unless file is NEW
 
-### Procedure 2: Freshness Validation
+**Why**: Memory grows during work, not in separate audits.
 
-**When**: Monthly check or user asks "Verify memory freshness"
+### Procedure 1: Proactive Freshness Check (Weekly or At Start)
 
-**Steps**:
-1. Load heuristics.json (TTL rules by fact type)
-2. For each memory file, extract lastUpdated
-3. Calculate age_days = today - lastUpdated
-4. Flag files exceeding TTL
-5. For critical facts: verify still accurate
-6. Report: "All current ✅" or "X files need refresh, Y are stale"
-
-### Procedure 3: Keep MEMORY.md Current
-
-**When**: After discovering/creating/archiving memory files
+**When**: Beginning of session OR after every major task batch
 
 **Steps**:
-1. Update MEMORY.md task mappings if they change
-2. Update file descriptions if content significantly changes
-3. Add new task categories if you discover new patterns
-4. Verify index reflects current memory structure
-5. Keep mapping entries under ~150 characters (concise index)
+1. Load MEMORY.md and all file frontmatter
+2. For each file, calculate: age_days = today - lastUpdated
+3. **Flag stale**: infrastructure/config >30 days, patterns >60 days, learnings >90 days
+4. **Verify critical facts**: For stale infra files, check if still accurate (e.g., IPs, service status)
+5. **Auto-rectify**: Update lastUpdated if verified still accurate
+6. **Report to user**: "Memory freshness: X current, Y stale (flagged for review)"
 
-**Why**: Stale MEMORY.md defeats the purpose of having an index.
+**Why**: Stale memory is dangerous; proactive checks prevent rot.
 
-### Procedure 4: Log Memory Usage (Feedback Loop)
+### Procedure 2: Rectify Inconsistencies (Continuous)
 
-**When**: After agent uses memory to solve a problem
+**When**: Detected during any memory access
+
+**Rectify immediately:**
+- **Broken links**: MEMORY.md points to non-existent file → Remove from index
+- **Missing timestamps**: File has no lastUpdated → Add today's date
+- **Duplicate facts**: Same info in two files → Merge, archive one, update MEMORY.md
+- **Outdated references**: Fact says "old location" but you know new location → Update both fact and MEMORY.md
+- **Orphaned files**: File exists but not in MEMORY.md → Index it or archive it
+- **Invalid frontmatter**: File missing name/description → Add proper frontmatter
+
+**After rectifying:**
+1. Update file's lastUpdated
+2. Update MEMORY.md if structure changed
+3. Report briefly: "Fixed: [issue count] inconsistencies"
+
+### Procedure 3: Keep MEMORY.md Always Fresh (Every Session)
+
+**When**: Beginning and end of session
 
 **Steps**:
-1. Note: which memory files were helpful? Which were missing?
-2. Track: Did index map correctly to task? Or did I miss files?
-3. Feedback: Propose MEMORY.md improvements if mappings are wrong
-4. Result: Over time, index becomes better at guiding agent
+1. Verify index entries match actual files in memory/
+2. Check that descriptions are accurate (skim file content if >30 days old)
+3. Add any new files discovered during task work
+4. Remove archived entries
+5. Verify links work (spot-check a few)
+6. Update line-count if significantly changed
 
-### Procedure 5: Update Memory on User Feedback
+**Why**: Stale index defeats purpose of having one.
 
-**When**: User corrects or adds info ("Remember that X moved to Y")
+### Procedure 4: Proactive Consolidation (When Pattern Detected)
+
+**When**: Discover duplicate or overlapping memory
 
 **Steps**:
-1. Extract fact from user input
-2. Find relevant memory file (use MEMORY.md to locate)
-3. Locate section that needs update
-4. Use Edit tool to update content
-5. Update lastUpdated timestamp to today
-6. Update MEMORY.md if file description or mapping changed
-7. Confirm: "✓ Updated [file] with [change]"
+1. Compare files for overlap
+2. **Only consolidate if**: one file is clear superset of other
+3. Merge content into survivor file
+4. Update survivor's lastUpdated
+5. Archive loser file (move to archive/, don't delete)
+6. Update MEMORY.md
+7. Report: "Consolidated [file1] + [file2] → [survivor]"
 
-### Procedure 6: Archive Resolved Incident
+**Why**: Duplicates confuse future lookups and slow down refresh.
 
-**When**: Incident is resolved and no longer relevant (e.g., old boot failure)
+### Procedure 5: Archive Outdated Facts (Auto-Decide)
+
+**When**: Fact is no longer relevant OR contradicted by newer info
 
 **Steps**:
 1. Move file to `.claude/memory/archive/[YYYY-MM-DD]/[filename].md`
-2. Remove entry from MEMORY.md index (under appropriate section)
-3. Document reason: why is this being archived?
-4. Update lastUpdated in archive note with date
+2. Add archival comment: "Archived [date] because: [reason]"
+3. Remove from MEMORY.md index
+4. Report: "Archived [file] ([reason])"
+
+**Examples**:
+- "This incident was resolved 90 days ago"
+- "Superseded by [newer-file]"
+- "Service no longer runs on this host"
+
+### Procedure 6: Propose Improvement (Smart Suggestion)
+
+**When**: Pattern detected or gap noticed
+
+**Examples**:
+- "I used [file] 5 times this week; consider splitting into sub-files for clarity"
+- "Missing memory on [topic]; should I create [filename].md?"
+- "MEMORY.md section [X] hasn't been accessed in 3 months; archive it?"
+- "I keep looking for [fact]; should we add [new section]?"
+
+**How to propose**:
+- Make the suggestion natural (in prose, not as command)
+- Offer to take action if user agrees
+- Don't wait; suggest immediately if pattern is clear
+
+## Memory Freshness TTLs (Guidelines)
+
+Use these to flag staleness:
+- **Infrastructure** (IPs, services, mounts): 30 days
+- **Patterns & lessons**: 60 days
+- **Preferences & rules**: 90 days
+- **Historical incidents**: 180 days (then archive)
+- **Setup artifacts**: 30 days (verify still accurate)
 
 ## Output Format
 
-Agent reports findings as natural language analysis with recommendations.
-
-## Architecture: Agent-Native (No Scripts)
-
-The skill is pure **reasoning + guidelines**. Agent executes using Read, Edit, Write tools and Claude reasoning.
+Agent reports memory operations as natural, brief statements:
+- "✓ Saved discovery to [file]"
+- "Rectified: [count] inconsistencies"
+- "Memory freshness: [X] current, [Y] stale"
+- "Proposal: [suggestion]"
 
 ## Constraints
 
-1. **Index first**: Always start with MEMORY.md; never read all files indiscriminately
-2. **Safe by default**: All proposals are *suggestions*, not actions
-3. **No auto-delete**: User must approve archival/deletion
-4. **Preserve git history**: When archiving, move to history/; don't delete
-5. **Protect secrets**: Never expose token values, env vars, or credentials in reports
-6. **Index integrity**: If MEMORY.md is out of sync with actual files, flag and fix it
-7. **Respect user intent**: If user explicitly saved something, don't delete it without asking
-
+1. **Always index first**: MEMORY.md is source of truth
+2. **Never lose data**: Archive instead of delete
+3. **Timestamps matter**: Every write updates lastUpdated
+4. **Secrets protected**: Never expose tokens, keys, env vars
+5. **User intent respected**: If user explicitly saved something, don't archive without asking
+6. **Git history preserved**: Archived files go to history/, keeping full context
+7. **Proactive default**: Default to saving/updating, not waiting
 
 ## Related Concepts
 
-- Memory freshness validation happens during regular audits
-- Semantic mapping connects task patterns to relevant memory files
-- Archive decisions follow the "still relevant?" question based on task patterns
+- Memory evolves during work, not in separate phases
+- Freshness validation prevents stale facts
+- Auto-rectification keeps index and files consistent
+- Consolidation reduces cognitive load
+- Archival preserves history without cluttering present
 
 ## Notes
 
-- This skill is **discovered through work**, not pre-planned. As the agent executes tasks, it learns that memory management is a generic problem that deserves a dedicated skill.
-- **Evolution opportunity**: As the skill matures, propose building a knowledge-graph version (SHIMI-style hierarchical semantic memory) for advanced multi-hop queries.
-- **Feedback loop**: Agent uses memory-manager to improve memory → improved memory → better task execution → more learnings → memory evolves continuously.
+- This skill is **discovered through work**. As the agent executes tasks, it learns that memory management is a continuous need, not a batch process.
+- **Active evolution**: Memory improves with every task. Agent learns what facts are useful, what's outdated, what's missing.
+- **Feedback loop**: Better memory → Better task execution → More accurate learnings → Continuously improving memory.
