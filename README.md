@@ -1,73 +1,53 @@
 # Claude Home Agent — CT 112
 
-**An autonomous action engine for the home lab. Learns by working.**
+Simple message listener that learns by working.
+
+**Architecture**:
+```
+Telegram → bot.js → spawn 'claude --message' → response
+```
 
 ## Quick Start
 
 ```bash
-# Start Telegram bot
-node channels/telegram/bot.js
-
-# Run learning engine
-node agent/learner.js
-
-# Run agent manager
-node agent/core.js
-
-# Run proposal engine
-node agent/proposer.js
+# Start the bot
+BOT_TOKEN=<your-token> node channels/telegram/bot.js
 ```
 
-## What Is This?:> A unified autonomous agent that:
-- Runs on your home lab (Proxmox, containert
-:> :> , services)
-- Listens via Telegram for tasks
-- Learns from every execution
-- Proposes new automations as patterns emerge
-- Manages a growing skill library
+The bot listens for messages, processes them with Claude Code, and sends responses back.
 
-See [CLAUDE.md](./CLAUDE.md) for the full philosophy and architecture.
+## What It Does
+
+- **Listen** for Telegram messages
+- **Process** each message via Claude CLI
+- **Respond** with results
+- **Learn** patterns through memory and skills
+
+No state management. No approval gates. No batch processing. Stateless and simple.
 
 ## Documentation
 
-- **[Setup Guide](./docs/00-SETUP-CHECKLIST.md)** — Get the agent running
-- **[Architecture](./docs/ARCHITECTURE.md)** — System design
-- **[Usage](./docs/USAGE.md)** — How to use the agent
-- **[Development](./docs/DEVELOPMENT.md)** — Build new skills
-- **[API Reference](./docs/API.md)** — Core APIs
-- **[Skills](./docs/SKILLS.md)** — Available skills
-- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** — Common issues
+- **[CLAUDE.md](CLAUDE.md)** — Core philosophy: learning loop & operating principles
+- **[SOUL.md](SOUL.md)** — Agent personality & communication style
+- **[SKILLS.md](SKILLS.md)** — How skills evolve through work
+- **[INFRASTRUCTURE.md](INFRASTRUCTURE.md)** — Home lab reference (Proxmox, containers)
 
 ## Structure
 
 ```
 /opt/claude-agent/
-├── agent/           # Brain (core loop, learner, proposer)
-├── channels/        # Interfaces (Telegram)
-├── skills/          # Growing toolkit of automations
-├── memory/          # Persistent learnings
-├── config/          # Service configuration
-├── .claude/         # Claude Code settings
-└── docs/            # Documentation
+├── channels/telegram/    # Telegram bot (listener)
+├── skills/              # Growing toolkit
+├── memory/              # Persistent learnings
+└── .claude/             # Claude Code settings
 ```
 
-## Memory
+## Memory & Learning
 
-The agent's learnings are stored in `memory/MEMORY.md`. Before any task, it loads:
+Agent learnings live in `memory/MEMORY.md`:
 - Infrastructure facts
-- Past failures and wins
-- Rules ("never expose secrets")
+- Past patterns and solutions
+- Rules and constraints
 - Domain knowledge
 
-This makes it smarter with every task.
-
-## Development
-
-See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for:
-- Adding new skills
-- Understanding the learning loop
-- Running tests
-
----
-
-**Status**: Active learning. See `memory/MEMORY.md` for current context.
+Skills emerge from work, not manual design.
