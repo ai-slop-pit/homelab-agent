@@ -11,20 +11,23 @@ Agent automatically delegates research, web lookups, and knowledge gaps to Gemin
 ## Identity
 
 `investigate` is a **agent-native behavioral skill**: reasoning guidelines for autonomous research delegation. When the agent detects it needs research, it automatically:
-1. Formulates a research prompt (including "what should you return?")
-2. Calls `gemini` CLI directly via Bash with model selected based on problem complexity
-3. Receives structured findings
-4. Integrates results back into reasoning
-5. Logs delegation to `logs/investigate/`
-6. If findings are important → memory-skill auto-captures
+1. Assesses complexity: simple lookup vs. web-based research vs. comprehensive analysis
+2. Selects appropriate tool: standard model (Flash/Pro), Deep Research API, or Deep Research Max
+3. Formulates structured prompt with desired output format
+4. Calls `gemini` CLI directly via Bash
+5. Receives structured findings (with sources for Deep Research)
+6. Integrates results back into reasoning
+7. Logs delegation to `logs/investigate/[date].log`
+8. If findings are important → memory-skill auto-captures
 
 ## What Agent Does (Scope)
 
-✅ **Detect** when research is needed (knowledge gap, claim verification, URL context, current info)
-✅ **Delegate** automatically to `gemini` CLI without hesitation
-✅ **Select model** based on problem: simple (Flash), complex (Pro), synthesis (Extended)
+✅ **Detect** when research is needed (knowledge gap, claim verification, current info, web-based synthesis)
+✅ **Assess complexity**: Simple lookup vs. iterative web research vs. comprehensive analysis
+✅ **Delegate** automatically to appropriate Gemini tool without hesitation
+✅ **Select model**: Standard models for facts, Deep Research API for web verification, Deep Research Max for analysis
 ✅ **Structure prompt** with clear output format request
-✅ **Log delegations** to `logs/investigate/` with timestamp, query, model, findings
+✅ **Log delegations** to `logs/investigate/` with timestamp, query, model, findings, sources
 ✅ **Integrate** findings back into main reasoning
 ✅ **Trigger memory-skill** if findings should be remembered
 
@@ -32,6 +35,7 @@ Agent automatically delegates research, web lookups, and knowledge gaps to Gemin
 ❌ **Hesitate** when uncertain — delegate instead
 ❌ **Cache results** — fresh research each time
 ❌ **Hide delegations** — log transparently
+❌ **Assume knowledge** when Deep Research API exists for exactly this purpose
 
 ## Agent Procedures
 
@@ -54,16 +58,23 @@ Agent automatically delegates research, web lookups, and knowledge gaps to Gemin
 
 **Steps**:
 1. Define the topic/query precisely
-2. Add context: "What problem am I solving?"
-3. Choose model hint:
-   - `simple`: Fact lookup, quick summary, basic verification (use gemini-2.0-flash)
-   - `complex`: Deep analysis, synthesis, nuanced understanding (use gemini-2.0-pro)
-   - `synthesis`: Multi-source synthesis, opinion synthesis (use gemini-2.0-flash extended)
-4. Specify output format in the prompt itself: "Return as: [format]"
+2. Assess complexity:
+   - Is this **simple fact lookup** (knowledge in training data)? → Use standard model (Flash/Pro)
+   - Is this **web-based research** (needs current info, verification, synthesis)? → Use Deep Research API
+   - Is this **comprehensive analysis** (background task, high quality needed)? → Use Deep Research Max
+3. Choose appropriate approach:
+   - **Standard model** (simple): `gemini-3-5-flash` or `gemini-3-1-pro`
+   - **Deep Research** (complex web): `google-deepresearch-1.0`
+   - **Deep Research Max** (comprehensive): `google-deepresearch-max-1.0`
+4. Specify output format in the prompt: "Return as: [format]"
    - Examples: "structured outline", "key facts + sources", "summary + evidence", "comparison table"
-5. Call gemini CLI via Bash:
+5. Call via Bash:
    ```bash
-   gemini --model gemini-2.0-flash "Topic: X. Context: Y. Return format: Z. Findings:"
+   # Simple lookup
+   gemini --model gemini-3-5-flash "Topic: X. Context: Y. Return: Z"
+   
+   # Web research with iteration
+   gemini --model google-deepresearch-1.0 "Research: X. Find: Y. Return: Z"
    ```
 
 ### Procedure 3: Log and Integrate
@@ -100,15 +111,29 @@ Agent: "This is important infrastructure knowledge. Saving to memory."
 Memory-skill: Creates new memory file with the finding
 ```
 
-## Model Selection Guide
+## Model Selection Guide (Updated May 2026)
 
+### Standard Models for Simple Research
 | Problem Type | Model | Cost | Use Case |
 |------|-------|------|----------|
-| `simple` | `gemini-2.0-flash` | Low | Quick facts, basic lookup, simple summary |
-| `complex` | `gemini-2.0-pro` | Medium | Analysis, verification, synthesis |
-| `synthesis` | `gemini-2.0-flash` | Low | Multi-source synthesis, opinions, comparisons |
+| `simple` | `gemini-3-5-flash` | Low | Quick facts, basic lookup, simple summary |
+| `complex` | `gemini-3-1-pro` | Medium | Analysis, verification, synthesis |
+| `speed` | `gemini-3-1-flash-lite` | Very Low | Speed-critical lookups, cost-optimized |
 
 **Decision rule**: Start with Flash; upgrade to Pro if reasoning depth needed.
+
+### Deep Research API (Recommended for Investigation)
+For complex multi-step research, use **Deep Research API**:
+- **`google-deepresearch-1.0` (Deep Research)**: Iterative web search + synthesis, optimized for speed
+  - Recommended for: Verification, current info, multi-source synthesis, complex topics
+  - How it works: Plans investigation → formulates sub-questions → searches iteratively → synthesizes findings
+  
+- **`google-deepresearch-max-1.0` (Deep Research Max)**: Maximum comprehensiveness with extended reasoning
+  - Recommended for: Comprehensive analysis, background workflows, highest quality needed
+  - Use when: Speed isn't critical, need deep understanding
+
+**When to use Deep Research**: Topic requires web search, verification, or multi-step reasoning
+**When to use standard models**: Simple factual lookup, verification against knowledge cutoff
 
 ## Constraints
 
