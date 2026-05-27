@@ -141,6 +141,7 @@
       "Bash(rm -rf /opt/claude-agent*)",
       "Bash(rmdir /opt/claude-agent*)",
       "Bash(./.claude/skills/investigate/scripts/*.sh *)",
+      "Bash(./.claude/skills/agent-versioning/scripts/*.sh *)",
       "Bash(gemini *)"
     ],
     "deny": []

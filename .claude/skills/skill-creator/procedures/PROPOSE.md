@@ -28,6 +28,12 @@
    - SETUP.md: How to enable continuous monitoring
    - INTEGRATE.md: How to trigger on crashes
 
+6. **SKILL.md structure** (no redundancy)
+   - Frontmatter description defines "When: What: Why"
+   - SKILL.md has only Essentials + Procedure Map + Key Principle
+   - **Do NOT add "When to Use" section** — it duplicates the description
+   - The agent reads description, not "When to Use" sections
+
 ## Example: App-Health-Monitor Skill
 
 **Pattern**: Diagnosed 3 app failures (same approach each time)

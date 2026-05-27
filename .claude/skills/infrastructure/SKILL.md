@@ -16,18 +16,6 @@ disable-model-invocation: false
 **Need to manage services?** Read [COMMANDS.md](procedures/COMMANDS.md)  
 **Need storage/disk status?** Read [STORAGE.md](procedures/STORAGE.md)
 
----
-
-## When to Use
-
-- Troubleshooting infrastructure issues (container down, service hung, disk full)
-- Accessing container IPs, mount points, SSH commands
-- Checking hardware capacity (RAM, CPU, storage free space)
-- Managing services (restart, status, logs)
-- Verifying disk health and expansion options
-
----
-
 ## Key Principle
 
 Infrastructure knowledge is the source of truth. This skill consolidates hardware specs and service info into one declarative interface, eliminating the need to load separate memory files for every infrastructure task.

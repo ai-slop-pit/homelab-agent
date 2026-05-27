@@ -26,13 +26,15 @@
    - 2-3 essential use cases
    - Routing table (task → procedure file)
    - Key principle (one sentence)
+   - **NO "When to Use" section** — description frontmatter already defines it
 
 3. **Create procedure files** (40-50 lines each)
    - One file per task/use case
-   - Structure: heading + "When to use" + Procedure + Example + links
+   - Structure: heading + Procedure + Example + links
    - Real example from the pattern that triggered the skill
    - Action-verb naming: DIAGNOSE.md, SETUP.md, not PROCEDURE-1.md
    - Link back to SKILL.md
+   - **Skip "When to use"** — procedure name + routing table already define it
 
 4. **Quick validation**:
    - SKILL.md alone sufficient? (reader understands when/how without other files)
