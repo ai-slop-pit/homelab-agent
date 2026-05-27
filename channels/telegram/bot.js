@@ -96,15 +96,19 @@ bot.catch((err, ctx) => {
   console.error(err);
 });
 
-// Start the bot
-bot.launch({
-  polling: {
-    interval: 300,
-    timeout: 20,
-  },
-});
-
-log('Bot started and listening for messages');
+// DISABLED: Bot disabled due to prompt injection vulnerability (direct pass-through of user input)
+// See: Line 42 - userMessage passed directly to spawned Claude process
+// TODO: Implement proper input sanitization/escaping before re-enabling
+//
+// // Start the bot
+// bot.launch({
+//   polling: {
+//     interval: 300,
+//     timeout: 20,
+//   },
+// });
+//
+// log('Bot started and listening for messages');
 
 // Graceful shutdown
 process.once('SIGINT', () => {
