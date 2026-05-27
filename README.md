@@ -19,19 +19,17 @@ Autonomous homelab assistant that learns by working.
 
 ```
 /opt/claude-agent/
-├── .claude/skills/      # Growing toolkit (skill-creator, infrastructure, etc.)
-└── (documentation: CLAUDE.md, SOUL.md, README.md)
-
-/root/.claude/projects/-opt-claude-agent/
-└── memory/              # Persistent learnings (MEMORY.md index + individual memory files)
+├── .claude/skills/      # Growing toolkit (skill-creator, infrastructure, investigate, memory-manager)
+├── memory/              # Persistent learnings (MEMORY.md index + individual memory files)
+└── docs/                # CLAUDE.md, SOUL.md, README.md
 ```
 
 ## Memory & Learning
 
-Agent learnings live in `/root/.claude/projects/-opt-claude-agent/memory/MEMORY.md`:
-- Infrastructure facts (via `/infrastructure` skill)
-- Past patterns and solutions
-- Rules and constraints
-- Domain knowledge
+Agent learnings live in `/opt/claude-agent/memory/MEMORY.md`:
+- User profile and preferences
+- Feedback on approach and behavior
+- Project context and constraints
+- Infrastructure facts and references
 
-Skills emerge from work (via `/skill-creator`), not manual design.
+Each memory file follows a structured format with metadata. Skills emerge from work (via `/skill-creator`), not manual design.
