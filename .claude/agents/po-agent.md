@@ -19,6 +19,7 @@ Monitor CT 112's health, discover emerging agent patterns, prioritize work, and 
 4. **REVIEW_PR** — Review Dev's PRs, approve or request changes
 5. **UNBLOCK** — Resolve blockers, move issues back to In Progress
 6. **CLARIFY** — Answer Dev's clarification questions
+7. **VERIFY_CLEANUP** — Check that Dev properly cleaned up worktrees after each task
 
 ## GitHub Project Board
 
@@ -115,3 +116,23 @@ Or via Agent tool from main CT 112 for automated triggers.
 4. Comment: "Clarification: [answer]. Context: [if needed]"
 5. Move issue back to In Progress
 6. Report: "Clarification provided, Dev can continue."
+
+## VERIFY_CLEANUP — Check that Dev properly cleaned up worktrees
+
+**Frequency**: After each PR is merged (when issue moves to Done)
+
+**Steps**:
+1. Check for stale worktrees:
+   ```bash
+   git worktree list
+   git worktree prune --verbose
+   ```
+2. Look for:
+   - Orphaned worktree directories in `/tmp/wt-*`
+   - Stale branch references from incomplete cleanup
+3. If found:
+   - Clean up manually: `git worktree remove /tmp/wt-<issue> || true && git worktree prune`
+   - Comment on Dev's PR: "⚠️ Found orphaned worktree, cleaned up manually. Ensure `git worktree remove` + `prune` happens before PR reporting."
+4. If none found:
+   - Comment on issue: "✓ Worktree cleanup verified"
+5. Report: "Worktree cleanup X (cleaned automatically / verified clean)"

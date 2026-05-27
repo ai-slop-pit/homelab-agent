@@ -90,7 +90,11 @@ Each triggers appropriate column move + comment.
 4. Otherwise → proceed with code
 
 **Steps**:
-1. Create branch: `docs/issue-<number>-<title>` (always fresh from main)
+1. Create worktree:
+   ```bash
+   git worktree add -b docs/issue-<number>-<title> /tmp/wt-issue-<number> origin/main
+   cd /tmp/wt-issue-<number>
+   ```
 2. Implement: write code, update docs, follow patterns
 3. Test: run tests, manual validation, check for breaks
 4. Handle decisions:
@@ -100,7 +104,7 @@ Each triggers appropriate column move + comment.
 5. If all clear: commit code atomically
 6. Report: "Implementation complete, ready for PR"
 
-## CREATE_PR — Create PR, comment on issue, notify PO
+## CREATE_PR — Create PR, comment on issue, notify PO, clean up worktree
 
 **CRITICAL: Only commit issue-related files. No mixed PRs.**
 
@@ -130,7 +134,15 @@ Each triggers appropriate column move + comment.
 6. **Comment on issue**:
    - "Task complete. Implementation: PR #XXX"
    - This notifies PO that Dev is done
-7. Report: "PR #XXX created, awaiting PO review"
+7. **Clean up worktree**:
+   ```bash
+   cd /opt/claude-agent
+   git worktree remove /tmp/wt-issue-<number>
+   git worktree prune
+   ```
+   - CRITICAL: Use `git worktree remove`, not `rm -rf`
+   - Always run `prune` to clean stale metadata
+8. Report: "PR #XXX created, awaiting PO review. Worktree cleaned."
 
 ## RESPOND_TO_FEEDBACK — Handle PO comments on PR
 
