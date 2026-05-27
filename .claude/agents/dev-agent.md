@@ -134,15 +134,7 @@ Each triggers appropriate column move + comment.
 6. **Comment on issue**:
    - "Task complete. Implementation: PR #XXX"
    - This notifies PO that Dev is done
-7. **Clean up worktree**:
-   ```bash
-   cd /opt/claude-agent
-   git worktree remove /tmp/wt-issue-<number>
-   git worktree prune
-   ```
-   - CRITICAL: Use `git worktree remove`, not `rm -rf`
-   - Always run `prune` to clean stale metadata
-8. Report: "PR #XXX created, awaiting PO review. Worktree cleaned."
+7. Report: "PR #XXX created, awaiting PO review. Worktree at /tmp/wt-issue-<number> ready for PO cleanup."
 
 ## RESPOND_TO_FEEDBACK — Handle PO comments on PR
 

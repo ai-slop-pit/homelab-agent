@@ -95,7 +95,13 @@ Or via Agent tool from main CT 112 for automated triggers.
    - 🔄 Changes: "Please add X, consider Y"
    - ❌ Reject: "Different approach preferred"
 4. Move issue accordingly (Done if approved, back to In Progress if changes)
-5. Report: "PR reviewed and X"
+5. **If merging**: Clean up Dev's worktree
+   ```bash
+   # Extract issue number from PR (e.g., #10 from docs/issue-10-*)
+   git worktree remove /tmp/wt-issue-<number> || true
+   git worktree prune
+   ```
+6. Report: "PR reviewed and X. Worktree cleaned." (if merged)
 
 ## UNBLOCK — Resolve blocker, move issue back to In Progress
 
@@ -117,9 +123,9 @@ Or via Agent tool from main CT 112 for automated triggers.
 5. Move issue back to In Progress
 6. Report: "Clarification provided, Dev can continue."
 
-## VERIFY_CLEANUP — Check that Dev properly cleaned up worktrees
+## VERIFY_CLEANUP — Check for stale worktrees (catch-all check)
 
-**Frequency**: After each PR is merged (when issue moves to Done)
+**Frequency**: Periodically (weekly or after multiple merged PRs)
 
 **Steps**:
 1. Check for stale worktrees:
@@ -128,11 +134,11 @@ Or via Agent tool from main CT 112 for automated triggers.
    git worktree prune --verbose
    ```
 2. Look for:
-   - Orphaned worktree directories in `/tmp/wt-*`
+   - Orphaned worktree directories in `/tmp/wt-*` (means cleanup was missed)
    - Stale branch references from incomplete cleanup
 3. If found:
    - Clean up manually: `git worktree remove /tmp/wt-<issue> || true && git worktree prune`
-   - Comment on Dev's PR: "⚠️ Found orphaned worktree, cleaned up manually. Ensure `git worktree remove` + `prune` happens before PR reporting."
+   - Note: This should be rare if REVIEW_PR cleanup is working
 4. If none found:
-   - Comment on issue: "✓ Worktree cleanup verified"
-5. Report: "Worktree cleanup X (cleaned automatically / verified clean)"
+   - All clean, no action needed
+5. Report: "Worktree cleanup verified (X orphaned cleaned / all clean)"
