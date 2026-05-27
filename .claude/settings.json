@@ -139,8 +139,24 @@
       "Bash(rm /opt/claude-agent*)",
       "Bash(rm -f /opt/claude-agent*)",
       "Bash(rm -rf /opt/claude-agent*)",
-      "Bash(rmdir /opt/claude-agent*)"
+      "Bash(rmdir /opt/claude-agent*)",
+      "Bash(./.claude/skills/investigate/scripts/*.sh *)",
+      "Bash(gemini *)"
     ],
     "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebSearch",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Query: $ARGUMENTS\n\nThis is an information/research request. Consider: investigate skill (Gemini CLI with validation, structured sources, evidence) or direct WebSearch? Return ONLY 'investigate' or 'websearch'.",
+            "continueOnBlock": true
+          }
+        ]
+      }
+    ]
   }
 }

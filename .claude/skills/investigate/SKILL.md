@@ -1,6 +1,6 @@
 ---
 name: investigate
-description: "When: Something breaks, needs investigation, or answer needed. What: Build validation prompt, call Gemini CLI, get sources + evidence. Why: Investigate root cause before fixing. Never assume—always search, validate, cite."
+description: "When: Need answer to any question (current events, research, verification, debugging). What: Build validation prompt, call Gemini CLI, get sources + evidence. Why: Never assume—always search, validate, cite."
 disable-model-invocation: false
 ---
 
