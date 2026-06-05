@@ -10,14 +10,14 @@
 
 | CT # | Name | IP | Purpose | Data Mount | Status |
 |------|------|----|---------|----|--------|
-| 110 | qBittorrent | 192.168.50.110 | Downloads | `/mnt/hdd-data/shared/downloads` → `/data/downloads` | ✅ Running |
-| 103 | Plex | 192.168.50.103 | Media Server | `/mnt/hdd-data/shared/media` → `/mnt/media` | ✅ Running |
-| 102 | Jellyfin | 192.168.50.102 | Media Server | `/mnt/hdd-data/shared/media` → `/mnt/media` | ✅ Running |
-| 106 | Radarr | 192.168.50.106 | Movie Management | `/mnt/hdd-data/shared` → `/data` | ✅ Running |
-| 107 | Sonarr | 192.168.50.107 | TV Management | `/mnt/hdd-data/shared` → `/data` | ✅ Running |
-| 104 | Prowlarr | 192.168.50.104 | Indexer | N/A | ✅ Running |
-| 105 | FlareSolverr | 192.168.50.105 | Captcha Solver | N/A | ✅ Running |
-| 108 | Seerr | 192.168.50.108 | Requests | N/A | ✅ Running |
+| 110 | qBittorrent | 192.168.50.96 | Downloads | `/mnt/hdd-data/shared/downloads` → `/data/downloads` | ✅ Running |
+| 103 | Plex | 192.168.50.230 | Media Server | `/mnt/hdd-data/shared/media` → `/mnt/media` | ✅ Running |
+| 102 | Jellyfin | 192.168.50.254 | Media Server | `/mnt/hdd-data/shared/media` → `/mnt/media` | ✅ Running |
+| 106 | Radarr | 192.168.50.225 | Movie Management | `/mnt/hdd-data/shared` → `/data` | ✅ Running |
+| 107 | Sonarr | 192.168.50.253 | TV Management | `/mnt/hdd-data/shared` → `/data` | ✅ Running |
+| 104 | Prowlarr | 192.168.50.228 | Indexer | N/A | ✅ Running |
+| 105 | FlareSolverr | 192.168.50.209 | Captcha Solver | N/A | ✅ Running |
+| 108 | Seerr | 192.168.50.106 | Requests | N/A | ✅ Running |
 | 101 | n8n | 192.168.50.153 | Automation | N/A | ✅ Running |
 | 115 | gemini-manager | — | — | N/A | ❌ Stopped |
 | 116 | dashboard | — | — | N/A | ❌ Stopped |
@@ -46,13 +46,13 @@ shared/
 
 | Service | URL | Container | Port |
 |---------|-----|-----------|------|
-| **qBittorrent** | `http://192.168.50.110:8080` | CT 110 | 8080 |
-| **Plex** | `http://192.168.50.103:32400` | CT 103 | 32400 |
-| **Jellyfin** | `http://192.168.50.102:8096` | CT 102 | 8096 |
-| **Radarr** | `http://192.168.50.106:7878` | CT 106 | 7878 |
-| **Sonarr** | `http://192.168.50.107:8989` | CT 107 | 8989 |
-| **Prowlarr** | `http://192.168.50.104:9696` | CT 104 | 9696 |
-| **Seerr** | `http://192.168.50.108:5055` | CT 108 | 5055 |
+| **qBittorrent** | `http://192.168.50.96:8080` | CT 110 | 8080 |
+| **Plex** | `http://192.168.50.230:32400` | CT 103 | 32400 |
+| **Jellyfin** | `http://192.168.50.254:8096` | CT 102 | 8096 |
+| **Radarr** | `http://192.168.50.225:7878` | CT 106 | 7878 |
+| **Sonarr** | `http://192.168.50.253:8989` | CT 107 | 8989 |
+| **Prowlarr** | `http://192.168.50.228:9696` | CT 104 | 9696 |
+| **Seerr** | `http://192.168.50.106:5055` | CT 108 | 5055 |
 | **n8n** | `http://192.168.50.153:5678` | CT 101 | 5678 |
 
 ### Network
