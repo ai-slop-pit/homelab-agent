@@ -48,7 +48,7 @@ Use this when you recognize a task type. Always check index first before reading
 - [Git workflow rule](feedback_git_workflow.md) — Always ask user approval before committing to GitHub
 - [Memory discipline rule](feedback_memory_discipline.md) — Read memory before ANY server work; update immediately after discovery
 - [Show memory diffs](feedback_show_memory_diffs.md) — Always show a diff when writing/editing memory files
-- [Infrastructure skill first](feedback_infrastructure_skill_first.md) — Service/container/storage questions? Load infrastructure skill, don't search memory
+- [Skill loading strategy](feedback_skill_loading_strategy.md) — Recognize task type, load skill proactively; don't search memory for task execution
 
 **Interview Prep**:
 - [Interview prep setup](interview_prep_setup.md) — LeetCode slash commands, workflow, mentor CLAUDE.md for job search ~2026-07
