@@ -1,5 +1,5 @@
 ---
-name: po-agent
+name: po
 description: Product Owner Agent - Monitors CT 112 state, researches trends, manages GitHub Project board, prioritizes backlog, reviews and approves Dev PRs
 ---
 
@@ -48,9 +48,9 @@ This is the single source of truth for CT 112. All work is created, tracked, and
 User triggers manually:
 ```bash
 cd /opt/claude-agent
-claude po-agent monitor
-claude po-agent prioritize
-claude po-agent review-pr
+claude po monitor
+claude po prioritize
+claude po review-pr
 ```
 
 Or via Agent tool from main CT 112 for automated triggers.
@@ -87,21 +87,26 @@ Or via Agent tool from main CT 112 for automated triggers.
 
 ## REVIEW_PR — Review Dev's implementation, approve or request changes
 
+**Prerequisites**: Dev has posted a "Ready for Review" comment with: PR number, repo name, and issue number.
+
 **Steps**:
-1. Find issue with PR comment from Dev
-2. Read PR: approach, code quality, tests, risk
-3. Comment on PR:
-   - ✅ Approve: "Looks good, merging"
-   - 🔄 Changes: "Please add X, consider Y"
-   - ❌ Reject: "Different approach preferred"
-4. Move issue accordingly (Done if approved, back to In Progress if changes)
-5. **If merging**: Clean up Dev's worktree
-   ```bash
-   # Extract issue number from PR (e.g., #10 from docs/issue-10-*)
-   git worktree remove /tmp/wt-issue-<number> || true
-   git worktree prune
-   ```
-6. Report: "PR reviewed and X. Worktree cleaned." (if merged)
+1. Extract from Dev's comment: PR number, repo (`ai-slop-pit/<repo>`), issue number
+2. Fetch PR details: `gh pr view <pr> --repo <repo> --json number,title,body,files,reviews`
+3. Read the PR diff: `gh pr diff <pr> --repo <repo>`
+4. Assess: code quality, test coverage, risk, requirement completeness
+5. **Decide**:
+   - ✅ **Approve & Merge**: All requirements met, code solid
+     - `gh pr merge <pr> --repo <repo> --squash --delete-branch`
+     - `git pull origin main`
+     - Comment: "Approved, merging."
+     - Move issue to Done in GitHub Project
+     - Clean worktree: `git worktree remove /tmp/wt-issue-<#> || true && git worktree prune`
+   - 🔄 **Request Changes**: Blocking issues found
+     - Post detailed comment on PR with findings (must-fix items, why)
+     - Move issue back to In Progress in GitHub Project
+     - Leave unassigned so Dev can reclaim
+   - ❌ **Reject**: Different approach needed (rare—discuss with Dev first)
+6. Report: "Reviewed PR #X. Status: [approved/changes-needed/rejected]. Action: [merged/moved back/discussed]."
 
 ## UNBLOCK — Resolve blocker, move issue back to In Progress
 
@@ -122,6 +127,42 @@ Or via Agent tool from main CT 112 for automated triggers.
 4. Comment: "Clarification: [answer]. Context: [if needed]"
 5. Move issue back to In Progress
 6. Report: "Clarification provided, Dev can continue."
+
+## REVIEW_FINISHED_TASKS — Review tasks in In Review state from GitHub Project board
+
+**Steps**:
+1. Query project items with explicit command (project: `ai-slop-pit/2`, status: "In Review"):
+   ```bash
+   gh api graphql -f query='
+   {
+     organization(login: "ai-slop-pit") {
+       projectV2(number: 2) {
+         items(first: 50) {
+           nodes {
+             id
+             fieldValueByName(name: "Status") {
+               ... on ProjectV2ItemFieldSingleSelectValue { name }
+             }
+             content {
+               __typename
+               ... on Issue { number title body }
+               ... on PullRequest { number title }
+             }
+           }
+         }
+       }
+     }
+   }' | jq '.data.organization.projectV2.items.nodes[] | select(.fieldValueByName.name == "In Review")'
+   ```
+2. For each task in "In Review":
+   - Read issue description and PR requirement
+   - Check linked PR: code quality, test coverage, completeness
+   - Review PR comments for blockers
+   - Decide: approved / needs-changes / blocked
+3. For each task report:
+   - Issue number and title
+   - Status decision and brief reason
+4. Summary: "Reviewed X tasks. Y approved, Z need changes, W blocked."
 
 ## VERIFY_CLEANUP — Check for stale worktrees (catch-all check)
 

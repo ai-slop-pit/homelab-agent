@@ -42,6 +42,19 @@ shared/
 └── template/
 ```
 
+### Service Web UI Access
+
+| Service | URL | Container | Port |
+|---------|-----|-----------|------|
+| **qBittorrent** | `http://192.168.50.110:8080` | CT 110 | 8080 |
+| **Plex** | `http://192.168.50.103:32400` | CT 103 | 32400 |
+| **Jellyfin** | `http://192.168.50.102:8096` | CT 102 | 8096 |
+| **Radarr** | `http://192.168.50.106:7878` | CT 106 | 7878 |
+| **Sonarr** | `http://192.168.50.107:8989` | CT 107 | 8989 |
+| **Prowlarr** | `http://192.168.50.104:9696` | CT 104 | 9696 |
+| **Seerr** | `http://192.168.50.108:5055` | CT 108 | 5055 |
+| **n8n** | `http://192.168.50.153:5678` | CT 101 | 5678 |
+
 ### Network
 
 **Proxmox Host**: 192.168.50.2 (SSH via `/root/.ssh/id_proxmox`)  

@@ -1,5 +1,5 @@
 ---
-name: dev-agent
+name: dev
 description: Developer Agent - Polls GitHub Project board, claims Todo items, implements features, creates PRs, handles blockers and clarifications
 ---
 
@@ -45,7 +45,7 @@ Executes from Todo column, reports via issue comments with PR links:
 User triggers manually:
 ```bash
 cd /opt/claude-agent
-claude dev-agent poll
+claude dev poll
 ```
 
 The agent will automatically:
@@ -74,20 +74,46 @@ Each triggers appropriate column move + comment.
 ## POLL — Check Todo column, claim unassigned issue
 
 **Steps**:
-1. Query GitHub Project: issues in Todo column, not assigned
-2. For each issue: read title, description, acceptance criteria
-3. Decide: can I implement this? (scope, clarity, tools)
-4. Claim: comment "Taking this on", move to In Progress
-5. If no issues: report "No Todo items, standby"
-6. Report: "Issue #X claimed, starting implementation"
+1. Query project for unassigned Todo items:
+   ```bash
+   gh api graphql -f query='
+   {
+     organization(login: "ai-slop-pit") {
+       projectV2(number: 2) {
+         items(first: 50) {
+           nodes {
+             id
+             fieldValueByName(name: "Status") {
+               ... on ProjectV2ItemFieldSingleSelectValue { name }
+             }
+             fieldValueByName(name: "Assignees") {
+               ... on ProjectV2ItemFieldUserValue { users(first: 1) { nodes { login } } }
+             }
+             content {
+               __typename
+               ... on Issue { number title body }
+             }
+           }
+         }
+       }
+     }
+   }' | jq '.data.organization.projectV2.items.nodes[] | select(.fieldValueByName[0].name == "Todo" and .fieldValueByName[1].users.nodes | length == 0)'
+   ```
+2. If no items: report "No Todo items available"
+3. Take first unassigned item (lowest issue number)
+4. Read full issue: `gh issue view <number> --repo ai-slop-pit/ct-112 --json number,title,body`
+5. Assess scope, clarity, and feasibility
+6. Claim: Comment on issue "Taking this on. Starting implementation." 
+7. Move to In Progress (manually or via comment trigger)
+8. Report: "Issue #X claimed, starting implementation"
 
 ## IMPLEMENT — Work on claimed issue, handle blockers/clarifications
 
 **Critical Decision Points**:
-1. **Can I proceed?** NO → move to Blocked
-2. **Need user input?** YES → move to Needs User Approval
-3. **Breaking change?** YES → move to Needs User Approval
-4. Otherwise → proceed with code
+1. **Can I proceed?** NO → handle blocker (use HANDLE_BLOCKER)
+2. **Requirement unclear?** YES → handle clarification (use HANDLE_CLARIFICATION)
+3. **Breaking/high-risk change?** YES → handle approval (use HANDLE_USER_APPROVAL)
+4. Otherwise → proceed with implementation
 
 **Steps**:
 1. Create worktree:
@@ -96,60 +122,90 @@ Each triggers appropriate column move + comment.
    cd /tmp/wt-issue-<number>
    ```
 2. Implement: write code, update docs, follow patterns
-3. Test: run tests, manual validation, check for breaks
-4. Handle decisions:
-   - If blocker: move to Blocked, comment with reason, stop
-   - If unclear: move to Needs Clarification, comment with question, stop
-   - If big change: move to Needs User Approval, comment with impact, stop
-5. If all clear: commit code atomically
-6. Report: "Implementation complete, ready for PR"
+3. Test: run tests, manual validation, check for regressions
+4. **At decision point**: if blocker/unclear/risky, execute appropriate handler (see below)
+5. If all clear: commit code atomically (see CREATE_PR procedure for exact command)
+6. Proceed to CREATE_PR
 
-## CREATE_PR — Create PR, comment on issue, notify PO, clean up worktree
+**When blocker encountered**:
+- Comment on issue with blocker details
+- Move to Blocked column
+- Stop and wait (use HANDLE_BLOCKER procedure)
+
+**When clarification needed**:
+- Comment on issue with specific questions
+- Move to Needs Clarification column
+- Stop and wait (use HANDLE_CLARIFICATION procedure)
+
+**When user approval needed**:
+- Comment on issue with impact analysis
+- Move to Needs User Approval column
+- Stop and wait (use HANDLE_USER_APPROVAL procedure)
+
+## CREATE_PR — Create PR, comment on issue, notify PO
 
 **CRITICAL: Only commit issue-related files. No mixed PRs.**
 
 **Steps**:
 1. Review uncommitted changes: `git status` and `git diff --name-only`
-2. Push feature branch: `git push origin docs/issue-<num>-<short-title>`
-3. Create PR with template:
+   - If mixed files present: STOP and remove non-issue files
+2. Commit code atomically:
+   ```bash
+   git add <issue-related-files>
+   git commit -m "Issue #<num>: <summary>
+   
+   Co-Authored-By: Claude Dev Agent <noreply@anthropic.com>"
    ```
-   ## What
-   [Summary]
+3. Push feature branch: `git push origin docs/issue-<num>-<short-title>`
+4. Create PR:
+   ```bash
+   gh pr create --repo ai-slop-pit/ct-112 --title "Issue #<num>: <summary>" \
+     --body "## What
+   <summary of changes>
    
    ## Closes
-   Closes #XXX
+   Closes #<num>
    
    ## Testing
-   - [ ] Tests pass
-   - [ ] Manual verification done
-   - [ ] No breaking changes
+   - [x] Tests pass
+   - [x] Manual verification done
+   - [x] No breaking changes
    
    ## Risk
-   [Low/Medium/High]
+   Low"
    ```
-4. **Verify PR files**: `gh pr view <num> --json files --jq '.files[].path'`
-   - MUST show only issue-related files
-   - If extra files present, STOP before posting link
-5. Move issue to In Review
-6. **Comment on issue**:
-   - "Task complete. Implementation: PR #XXX"
-   - This notifies PO that Dev is done
-7. Report: "PR #XXX created, awaiting PO review. Worktree at /tmp/wt-issue-<number> ready for PO cleanup."
+5. Verify PR contents: `gh pr view <pr> --repo ai-slop-pit/ct-112 --json files --jq '.files[].path'`
+   - MUST match only issue-related files
+   - If extras present, STOP and fix before proceeding
+6. Move issue to In Review:
+   ```bash
+   gh issue comment <number> --repo ai-slop-pit/ct-112 --body "Implementation complete, PR #<pr> ready for review."
+   ```
+7. Report: "PR #<pr> created and issue moved to In Review. Awaiting PO review."
 
 ## RESPOND_TO_FEEDBACK — Handle PO comments on PR
 
 **Steps**:
-1. Monitor PR for PO comments
-2. If changes requested:
-   - Update code, commit: "Address feedback: [desc]"
-   - Comment: "Updated per feedback"
-3. If approved:
-   - Merge PR (or let PO merge)
-4. If rejected:
-   - Understand reason
-   - Move issue back to Backlog
-   - Comment: "Issue deprioritized"
-5. Report: "PR updated/merged/closed"
+1. Poll PR for PO review comments:
+   ```bash
+   gh pr view <pr> --repo ai-slop-pit/ct-112 --json reviews,comments
+   ```
+2. Check PR review status:
+   - **Approved**: PO comment says "approved, merging" or similar
+     - PR will be merged by PO; your job is done
+     - Report: "PR approved by PO, merge in progress"
+   - **Changes requested**: PO comment lists specific issues
+     - Check out feature branch: `cd /tmp/wt-issue-<num>` (already there)
+     - Update code to address feedback
+     - Commit: `git commit -am "Address PO feedback: [items]"`
+     - Push: `git push origin docs/issue-<num>-<short-title>`
+     - Comment on PR: "Updated per PO feedback"
+     - Report: "Changes pushed, awaiting re-review"
+   - **Rejected**: PO comment says "different approach preferred" (rare)
+     - Comment on issue: "Approach rejected, moving back to Backlog for discussion"
+     - Do NOT merge PR
+     - Report: "PR rejected, awaiting next direction"
+3. Report status
 
 ## HANDLE_BLOCKER — Report blocker clearly, move to Blocked
 

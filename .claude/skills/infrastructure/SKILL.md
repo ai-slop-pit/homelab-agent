@@ -26,6 +26,6 @@ Infrastructure knowledge is the source of truth. This skill consolidates hardwar
 
 | Task | Read This |
 |------|-----------|
-| Look up container info, IPs, mounts | [LOOKUP.md](procedures/LOOKUP.md) |
+| Look up container info, IPs, mounts, or web UI links | [LOOKUP.md](procedures/LOOKUP.md) |
 | Execute service commands (restart, logs, status) | [COMMANDS.md](procedures/COMMANDS.md) |
 | Check disk health, free space, partitions | [STORAGE.md](procedures/STORAGE.md) |

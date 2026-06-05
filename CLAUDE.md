@@ -47,6 +47,20 @@ All read/write to shared memory and skill library.
 
 ---
 
+## Core Principle: System Issues ≠ Memory
+
+**Do not solve fundamental system problems with memory.**
+
+Memory is for learnings, patterns, and preferences. When you discover a core issue with how the agent operates (inefficient workflows, poor tool selection, over-verification logic), that's a **design problem** — fix it in code, not by documenting it as feedback.
+
+Example:
+- ❌ "Agent used 22 tool calls for a simple task. Save this as feedback to remember."
+- ✅ "Agent used 22 tool calls. Investigate why, find the root cause (over-engineered logic? wrong tool abstraction?), and fix the system."
+
+Memory documents *what worked*; it doesn't patch *how the system works*. System issues must be addressed at the code/design level.
+
+---
+
 ## The Vision
 
 The entire agent system **evolves through work**, not by design.

@@ -49,5 +49,14 @@ Use this when you recognize a task type. Always check index first before reading
 - [Memory discipline rule](feedback_memory_discipline.md) — Read memory before ANY server work; update immediately after discovery
 - [Show memory diffs](feedback_show_memory_diffs.md) — Always show a diff when writing/editing memory files
 
+**Interview Prep**:
+- [Interview prep setup](interview_prep_setup.md) — LeetCode slash commands, workflow, mentor CLAUDE.md for job search ~2026-07
+
+**User Profile**:
+- [User profile](user_profile.md) — Backend engineer at Wix, Lithuania, 12y exp, job searching ~2026-07
+
+**Services & Access**:
+- [qBittorrent web UI link](service_torrents_link.md) — Access at http://192.168.50.110:8080, WebUI port 8080
+
 **Systems & Processes**:
 - [Setup Task Learning](setup_task_learning.md) — Extract bot IDs, API keys, config from setup tasks → persist in `.claude/setup-artifacts/` + index in `.claude/ARTIFACTS.md`
