@@ -73,6 +73,26 @@ pct exec 102 -- systemctl restart jellyfin
 pct exec 102 -- systemctl status jellyfin
 ```
 
+### Host Services (PM2-managed)
+
+**Telegram Bot** (`telegram-bot`):
+```bash
+# Check status
+pm2 status telegram-bot
+
+# View logs
+pm2 logs telegram-bot
+
+# Restart
+pm2 restart telegram-bot
+
+# Stop
+pm2 stop telegram-bot
+
+# Start
+pm2 start /opt/claude-agent/channels/telegram/bot.js --name telegram-bot
+```
+
 ---
 
 ## Example: User reports "qBittorrent is hanging"

@@ -42,6 +42,12 @@ shared/
 └── template/
 ```
 
+### Host Services (PM2-managed)
+
+| Service | Location | Purpose | Status |
+|---------|----------|---------|--------|
+| **Telegram Bot** | `/opt/claude-agent/channels/telegram/bot.js` | Remote task execution via Telegram | ✅ Running (PM2) |
+
 ### Service Web UI Access
 
 | Service | URL | Container | Port |

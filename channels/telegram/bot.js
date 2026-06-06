@@ -1,124 +1,94 @@
-const { Telegraf } = require('telegraf');
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+require('dotenv').config({ path: '/opt/claude-agent/.env' })
+const { Telegraf } = require('telegraf')
+const { spawn } = require('child_process')
+const fs = require('fs')
+const path = require('path')
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.BOT_TOKEN)
+const OWNER_ID = parseInt(process.env.OWNER_ID, 10)
 
-const LOGS_DIR = '/opt/claude-agent/logs';
-const BOT_LOG = path.join(LOGS_DIR, 'telegram-bot.log');
+const LOGS_DIR = '/opt/claude-agent/logs'
+const BOT_LOG = path.join(LOGS_DIR, 'telegram-bot.log')
 
-// Ensure logs directory exists
 if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true });
+  fs.mkdirSync(LOGS_DIR, { recursive: true })
 }
 
 function log(message) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] ${message}\n`;
-  console.log(logMessage);
-  fs.appendFileSync(BOT_LOG, logMessage, { flag: 'a' });
+  const timestamp = new Date().toISOString()
+  const logMessage = '[' + timestamp + '] ' + message + '\n'
+  console.log(logMessage.trim())
+  fs.appendFileSync(BOT_LOG, logMessage)
 }
 
-// Handle /start command
+bot.use((ctx, next) => {
+  if (ctx.from && ctx.from.id !== OWNER_ID) {
+    log('BLOCKED: Unauthorized user ' + ctx.from.id)
+    return ctx.reply('Unauthorized.')
+  }
+  return next()
+})
+
 bot.command('start', (ctx) => {
-  log(`START: User ${ctx.from.id} (${ctx.from.first_name})`);
-  ctx.reply('Hello! Send me a message and I\'ll process it.');
-});
+  log('START: User ' + ctx.from.id)
+  ctx.reply('Agent online. Send me a task.')
+})
 
-// Handle all text messages
+bot.command('status', (ctx) => {
+  ctx.reply('Agent running. Ready for tasks.')
+})
+
 bot.on('text', async (ctx) => {
-  const userId = ctx.from.id;
-  const userName = ctx.from.first_name;
-  const userMessage = ctx.message.text;
-
-  log(`MESSAGE: User ${userId} (${userName}): ${userMessage}`);
+  const userMessage = ctx.message.text
+  log('TASK: ' + userMessage)
 
   try {
-    // Show typing indicator
-    await ctx.sendChatAction('typing');
+    await ctx.sendChatAction('typing')
+    await ctx.reply('Working on it...')
 
-    // Spawn Claude Code process with the user's message
-    const claude = spawn('claude', ['--message', userMessage], {
+    const claude = spawn('claude', ['-p', userMessage, '--output-format', 'text'], {
       cwd: '/opt/claude-agent',
-      timeout: 120000, // 2 minute timeout
-    });
+      timeout: 600000,
+      env: Object.assign({}, process.env, { HOME: '/root' }),
+    })
 
-    let response = '';
-    let error = '';
+    let response = ''
+    let errorOut = ''
 
-    claude.stdout.on('data', (data) => {
-      response += data.toString();
-    });
-
-    claude.stderr.on('data', (data) => {
-      error += data.toString();
-    });
+    claude.stdout.on('data', (data) => { response += data.toString(); })
+    claude.stderr.on('data', (data) => { errorOut += data.toString(); })
 
     await new Promise((resolve, reject) => {
       claude.on('close', (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Claude process exited with code ${code}`));
-        }
-      });
+        if (code === 0) resolve()
+        else reject(new Error('Claude exited with code ' + code + ': ' + errorOut))
+      })
+      claude.on('error', reject)
+    })
 
-      claude.on('error', reject);
-    });
-
-    if (error) {
-      log(`ERROR: ${error}`);
-    }
-
-    // Send response (split if too long for Telegram's limit)
-    const maxLength = 4096;
-    if (response.length > maxLength) {
-      const chunks = response.match(new RegExp(`.{1,${maxLength}}`, 'g')) || [];
-      for (const chunk of chunks) {
-        await ctx.reply(chunk);
-      }
+    const maxLength = 4096
+    const text = response.trim() || '(no response)'
+    if (text.length > maxLength) {
+      const chunks = text.match(/.{1,4096}/g) || []
+      for (const chunk of chunks) await ctx.reply(chunk)
     } else {
-      await ctx.reply(response || '(no response)');
+      await ctx.reply(text)
     }
 
-    log(`RESPONSE: Sent ${response.length} chars to user ${userId}`);
+    log('DONE: ' + text.length + ' chars sent')
 
   } catch (err) {
-    log(`ERROR handling message: ${err.message}`);
-    await ctx.reply(`Error: ${err.message}`).catch(() => {});
+    log('ERROR: ' + err.message)
+    await ctx.reply('Error: ' + err.message).catch(() => {})
   }
-});
+})
 
-// Error handler
-bot.catch((err, ctx) => {
-  log(`TELEGRAM ERROR: ${err.message}`);
-  console.error(err);
-});
+bot.catch((err) => {
+  log('TELEGRAM ERROR: ' + err.message)
+})
 
-// DISABLED: Bot disabled due to prompt injection vulnerability (direct pass-through of user input)
-// See: Line 42 - userMessage passed directly to spawned Claude process
-// TODO: Implement proper input sanitization/escaping before re-enabling
-//
-// // Start the bot
-// bot.launch({
-//   polling: {
-//     interval: 300,
-//     timeout: 20,
-//   },
-// });
-//
-// log('Bot started and listening for messages');
+bot.launch()
+log('Bot started')
 
-// Graceful shutdown
-process.once('SIGINT', () => {
-  log('SIGINT received, shutting down');
-  bot.stop('SIGINT');
-});
-
-process.once('SIGTERM', () => {
-  log('SIGTERM received, shutting down');
-  bot.stop('SIGTERM');
-});
-
-module.exports = bot;
+process.once('SIGINT', () => { bot.stop('SIGINT'); })
+process.once('SIGTERM', () => { bot.stop('SIGTERM'); })
