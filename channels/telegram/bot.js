@@ -1,94 +1,74 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { Telegraf } = require('telegraf')
-const { spawn } = require('child_process')
+const Database = require('better-sqlite3')
 const fs = require('fs')
 const path = require('path')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const OWNER_ID = parseInt(process.env.OWNER_ID, 10)
-
 const LOGS_DIR = '/opt/claude-agent/logs'
 const BOT_LOG = path.join(LOGS_DIR, 'telegram-bot.log')
 
-if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true })
-}
+if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
-function log(message) {
-  const timestamp = new Date().toISOString()
-  const logMessage = '[' + timestamp + '] ' + message + '\n'
-  console.log(logMessage.trim())
-  fs.appendFileSync(BOT_LOG, logMessage)
+const db = new Database('/opt/claude-agent/tasks.db')
+db.exec(`CREATE TABLE IF NOT EXISTS tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  chat_id TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status TEXT DEFAULT 'inbox',
+  result TEXT,
+  session_id TEXT,
+  tg_message_id TEXT,
+  thinking_msg_id TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`)
+try { db.exec('ALTER TABLE tasks ADD COLUMN session_id TEXT'); } catch(e) {}
+try { db.exec('ALTER TABLE tasks ADD COLUMN tg_message_id TEXT'); } catch(e) {}
+try { db.exec('ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT'); } catch(e) {}
+
+function log(msg) {
+  const line = '[' + new Date().toISOString() + '] ' + msg + '\n'
+  console.log(line.trim())
+  fs.appendFileSync(BOT_LOG, line)
 }
 
 bot.use((ctx, next) => {
-  if (ctx.from && ctx.from.id !== OWNER_ID) {
-    log('BLOCKED: Unauthorized user ' + ctx.from.id)
-    return ctx.reply('Unauthorized.')
-  }
+  if (ctx.from && ctx.from.id !== OWNER_ID) return
   return next()
 })
 
-bot.command('start', (ctx) => {
-  log('START: User ' + ctx.from.id)
-  ctx.reply('Agent online. Send me a task.')
-})
-
-bot.command('status', (ctx) => {
-  ctx.reply('Agent running. Ready for tasks.')
+bot.command('start', (ctx) => ctx.reply('Hey! What can I do for you?'))
+bot.command('tasks', (ctx) => {
+  const tasks = db.prepare("SELECT id, status, substr(description,1,50) as desc FROM tasks ORDER BY created_at DESC LIMIT 10").all()
+  if (!tasks.length) return ctx.reply('No tasks yet.')
+  ctx.reply(tasks.map(t => '#' + t.id + ' [' + t.status + '] ' + t.desc).join('\n'))
 })
 
 bot.on('text', async (ctx) => {
-  const userMessage = ctx.message.text
-  log('TASK: ' + userMessage)
+  const desc = ctx.message.text
+  const chatId = ctx.chat.id.toString()
 
-  try {
-    await ctx.sendChatAction('typing')
-    await ctx.reply('Working on it...')
-
-    const claude = spawn('claude', ['-p', userMessage, '--output-format', 'text'], {
-      cwd: '/opt/claude-agent',
-      timeout: 600000,
-      env: Object.assign({}, process.env, { HOME: '/root' }),
-    })
-
-    let response = ''
-    let errorOut = ''
-
-    claude.stdout.on('data', (data) => { response += data.toString(); })
-    claude.stderr.on('data', (data) => { errorOut += data.toString(); })
-
-    await new Promise((resolve, reject) => {
-      claude.on('close', (code) => {
-        if (code === 0) resolve()
-        else reject(new Error('Claude exited with code ' + code + ': ' + errorOut))
-      })
-      claude.on('error', reject)
-    })
-
-    const maxLength = 4096
-    const text = response.trim() || '(no response)'
-    if (text.length > maxLength) {
-      const chunks = text.match(/.{1,4096}/g) || []
-      for (const chunk of chunks) await ctx.reply(chunk)
-    } else {
-      await ctx.reply(text)
+  let sessionId = null
+  if (ctx.message.reply_to_message) {
+    const replyMsgId = ctx.message.reply_to_message.message_id.toString()
+    const parent = db.prepare("SELECT session_id FROM tasks WHERE tg_message_id=? AND session_id IS NOT NULL").get(replyMsgId)
+    if (parent) {
+      sessionId = parent.session_id
+      log('Resuming session from msg ' + replyMsgId)
     }
-
-    log('DONE: ' + text.length + ' chars sent')
-
-  } catch (err) {
-    log('ERROR: ' + err.message)
-    await ctx.reply('Error: ' + err.message).catch(() => {})
   }
+
+  const thinking = await ctx.reply('Thinking...')
+  const thinkingMsgId = thinking.message_id.toString()
+
+  const res = db.prepare('INSERT INTO tasks (chat_id, description, session_id, thinking_msg_id) VALUES (?, ?, ?, ?)').run(chatId, desc, sessionId, thinkingMsgId)
+  log('QUEUED #' + res.lastInsertRowid + ': ' + desc.substring(0, 50))
 })
 
-bot.catch((err) => {
-  log('TELEGRAM ERROR: ' + err.message)
-})
-
+bot.catch((err) => log('ERROR: ' + err.message))
 bot.launch()
 log('Bot started')
-
-process.once('SIGINT', () => { bot.stop('SIGINT'); })
-process.once('SIGTERM', () => { bot.stop('SIGTERM'); })
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
