@@ -56,5 +56,9 @@ Use this when you recognize a task type. Always check index first before reading
 **User Profile**:
 - [User profile](user_profile.md) — Backend engineer at Wix, Lithuania, 12y exp, job searching ~2026-07
 
+**Infrastructure & Services**:
+- [Infrastructure services](infrastructure_services.md) — Container services, IPs, ports, data mounts (Plex, etc.)
+
 **Systems & Processes**:
 - [Setup Task Learning](setup_task_learning.md) — Extract bot IDs, API keys, config from setup tasks → persist in `.claude/setup-artifacts/` + index in `.claude/ARTIFACTS.md`
+- [Reflector System](reflector_system.md) — Autonomous self-improvement: analyzes code, researches web, generates improvement ideas, creates tasks for worker
