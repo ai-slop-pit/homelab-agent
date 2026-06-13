@@ -42,10 +42,12 @@ bot.command('tasks', (ctx) => {
 bot.command('work', async (ctx) => {
   const desc = ctx.message.text.replace(/^\/work\s*/i, '').trim()
   if (!desc) return ctx.reply('Usage: /work <description of what to build or improve>')
-  const title = desc.substring(0, 80)
+  if (desc.length > 5000) return ctx.reply('Description must be 1-5000 characters')
+  const sanitized = desc.trim().replace(/[\r\n]{3,}/g, '\n\n')
+  const title = sanitized.substring(0, 100)
   const res = db.prepare(
     "INSERT INTO tasks (chat_id, description, type, title, status, created_by) VALUES (?, ?, 'work', ?, 'backlog', 'user')"
-  ).run(String(ctx.chat.id), desc, title)
+  ).run(String(ctx.chat.id), sanitized, title)
   log('WORK #' + res.lastInsertRowid + ': ' + title)
   await ctx.reply('Work task #' + res.lastInsertRowid + ': "' + title + '"\n\nPlan coming shortly.')
 })
@@ -89,13 +91,18 @@ bot.on('text', async (ctx) => {
     if (pendingRejection[chatId]) {
       const taskId = pendingRejection[chatId]
       delete pendingRejection[chatId]
+      if (!text || text.length > 5000) return ctx.reply('Revision notes must be 1-5000 characters')
+      const sanitized = text.trim().replace(/[\r\n]{3,}/g, '\n\n')
       db.prepare(
         "UPDATE tasks SET status='needs_revision', rejection_notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
-      ).run(text, taskId)
+      ).run(sanitized, taskId)
       await ctx.reply('Task #' + taskId + ' sent back for revision.')
       log('Task #' + taskId + ' needs_revision')
       return
     }
+
+    if (!text || text.length > 5000) return ctx.reply('Message must be 1-5000 characters')
+    const sanitized = text.trim().replace(/[\r\n]{3,}/g, '\n\n')
 
     let sessionId = null
     if (ctx.message.reply_to_message) {
@@ -107,8 +114,8 @@ bot.on('text', async (ctx) => {
     const thinking = await ctx.reply('Thinking...')
     const res = db.prepare(
       'INSERT INTO tasks (chat_id, description, session_id, thinking_msg_id) VALUES (?, ?, ?, ?)'
-    ).run(chatId, text, sessionId, String(thinking.message_id))
-    log('QUEUED #' + res.lastInsertRowid + ': ' + text.substring(0, 50))
+    ).run(chatId, sanitized, sessionId, String(thinking.message_id))
+    log('QUEUED #' + res.lastInsertRowid + ': ' + sanitized.substring(0, 50))
   } catch (err) {
     log('ERROR in text handler: ' + err.message)
     try { await ctx.reply('Failed to process message. Retry manually.') } catch(e) {}

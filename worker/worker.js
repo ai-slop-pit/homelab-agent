@@ -1,6 +1,7 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { RateLimiter } = require('../lib/rateLimit')
 const { getDatabase } = require('../lib/db')
+const { runClaude } = require('../lib/claude-runner')
 const { spawn, execSync } = require('child_process')
 const https = require('https')
 const path = require('path')
@@ -365,3 +366,4 @@ process.on('unhandledRejection', (reason, promise) => {
 log('Worker started')
 poll()
 setInterval(poll, POLL_INTERVAL)
+setInterval(() => rateLimiter.cleanupOldLimiters(), 3600000) // Clean up old rate limiters every hour
