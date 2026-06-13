@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { getDatabase } = require('../lib/db')
+const { runClaude } = require('../lib/claude-runner')
 const fs = require('fs')
 const path = require('path')
-const { spawn } = require('child_process')
 const AsyncLogger = require('../lib/logger')
 const PROJECT_ROOT = '/opt/claude-agent'
 const LOGS_DIR = path.join(PROJECT_ROOT, 'logs')
@@ -91,41 +91,6 @@ function getMemoryContext() {
   return files
 }
 
-// ── Claude: Research & Generate Ideas ────────────────────────────────────────
-
-function runClaude(prompt, opts) {
-  opts = opts || {}
-  return new Promise((resolve, reject) => {
-    const args = ['-p', prompt, '--output-format', 'json']
-    if (opts.dangerousSkip) args.push('--dangerously-skip-permissions')
-    if (opts.web) {
-      args.push('--append-system-prompt',
-        'You have access to web search. Use it to research current best practices, security advisories, and trends.')
-    }
-
-    const env = Object.assign({}, process.env, { HOME: '/root' })
-    const claude = spawn('claude', args, { cwd: PROJECT_ROOT, timeout: 600000, env })
-
-    let out = '', err = ''
-    claude.stdout.on('data', d => out += d)
-    claude.stderr.on('data', d => err += d)
-    claude.on('close', code => {
-      if (code !== 0) return reject(new Error('Claude exit ' + code + ': ' + err.substring(0, 200)))
-      let result = ''
-      for (const line of out.trim().split('\n')) {
-        if (!line.trim()) continue
-        try {
-          const obj = JSON.parse(line)
-          if (obj.type === 'result') result = obj.result || ''
-        } catch(e) {}
-      }
-      if (!result) result = out.trim()
-      resolve(result)
-    })
-    claude.on('error', reject)
-  })
-}
-
 // ── Generate Improvement Ideas ───────────────────────────────────────────────
 
 async function generateIdeas() {
@@ -179,7 +144,7 @@ async function generateIdeas() {
   ].join('\n')
 
   try {
-    const result = await runClaude(prompt, { web: true })
+    const { result } = await runClaude(prompt, { web: true })
     let ideas = []
     try {
       // Extract JSON from markdown code blocks if wrapped
@@ -317,7 +282,7 @@ async function updateMemoryAndInstructions() {
       'Only output valid JSON.'
     ].join('\n')
 
-    const result = await runClaude(prompt)
+    const { result } = await runClaude(prompt)
     try {
       let jsonStr = result
       const codeMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/)
