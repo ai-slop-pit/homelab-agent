@@ -104,41 +104,6 @@ async function topicMsg(topicId, text, parseMode) {
   return sendMsg(GROUP_ID, text, Object.assign({ message_thread_id: topicId }, parseMode ? { parse_mode: parseMode } : {}))
 }
 
-// ── Claude runner ─────────────────────────────────────────────────────────────
-
-function runClaude(prompt, opts) {
-  opts = opts || {}
-  return new Promise((resolve, reject) => {
-    const args = ['-p', prompt, '--output-format', 'json']
-    if (opts.dangerousSkip) args.push('--dangerously-skip-permissions')
-    if (opts.addDir)        args.push('--add-dir', opts.addDir)
-    if (opts.sysPrompt)     args.push('--append-system-prompt', opts.sysPrompt)
-    if (opts.resume)        args.push('--resume', opts.resume)
-
-    const env = Object.assign({}, process.env, { HOME: '/root' }, opts.env || {})
-    const claude = spawn('claude', args, { cwd: '/opt/claude-agent', timeout: 600000, env })
-
-    let out = '', err = ''
-    claude.stdout.on('data', d => out += d)
-    claude.stderr.on('data', d => err += d)
-    claude.on('close', code => {
-      if (code !== 0) return reject(new Error('Claude exit ' + code + ': ' + err.substring(0, 200)))
-      let result = '', sessionId = null
-      for (const line of out.trim().split('\n')) {
-        if (!line.trim()) continue
-        try {
-          const obj = JSON.parse(line)
-          if (obj.session_id) sessionId = obj.session_id
-          if (obj.type === 'result') result = obj.result || ''
-        } catch(e) {}
-      }
-      if (!result) result = out.trim()
-      resolve({ result, sessionId })
-    })
-    claude.on('error', reject)
-  })
-}
-
 // ── Reflection ────────────────────────────────────────────────────────────────
 
 async function reflect(description, result) {
