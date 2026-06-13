@@ -1,0 +1,8 @@
+require('dotenv').config()
+const Database = require('better-sqlite3')
+const db = new Database('/opt/claude-agent/tasks.db')
+const all = db.prepare("SELECT COUNT(*) as count FROM tasks").get()
+const recent = db.prepare("SELECT id, title, status FROM tasks ORDER BY id DESC LIMIT 30").all()
+console.log('Total tasks:', all.count)
+console.log('Recent:')
+recent.forEach(r => console.log(`  #${r.id} ${r.status} ${r.title.substring(0, 50)}`))

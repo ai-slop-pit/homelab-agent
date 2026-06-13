@@ -1,0 +1,5 @@
+require('dotenv').config()
+const Database = require('better-sqlite3')
+const db = new Database('/opt/claude-agent/tasks.db')
+const tasks = db.prepare("SELECT id, title, significance, auto_execute, status FROM tasks WHERE id >= 10 ORDER BY id").all()
+tasks.forEach(t => console.log(`#${String(t.id).padEnd(3)} ${t.status.padEnd(15)} ${t.significance.padEnd(6)} auto_execute=${t.auto_execute} ${t.title.substring(0, 45)}`))

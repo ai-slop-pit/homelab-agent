@@ -1,6 +1,7 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
-const Database = require('better-sqlite3')
-const { spawn } = require('child_process')
+const initDatabase = require('../lib/db')
+const { RateLimiter } = require('../lib/rateLimit')
+const { spawn, execSync } = require('child_process')
 const https = require('https')
 
 const DB_PATH = '/opt/claude-agent/tasks.db'
@@ -9,39 +10,47 @@ const BOT_TOKEN = process.env.BOT_TOKEN
 const GROUP_ID = process.env.GROUP_ID
 const PLANNING_TIMEOUT_MS = 10 * 60 * 1000
 
-const db = new Database(DB_PATH)
-db.exec(`CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chat_id TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT DEFAULT 'inbox',
-  result TEXT,
-  session_id TEXT,
-  tg_message_id TEXT,
-  thinking_msg_id TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`)
-
-const MIGRATIONS = [
-  "ALTER TABLE tasks ADD COLUMN session_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_message_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'chat'",
-  "ALTER TABLE tasks ADD COLUMN title TEXT",
-  "ALTER TABLE tasks ADD COLUMN plan TEXT",
-  "ALTER TABLE tasks ADD COLUMN progress TEXT",
-  "ALTER TABLE tasks ADD COLUMN created_by TEXT DEFAULT 'user'",
-  "ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN rejection_notes TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_topic_id INTEGER",
-  "ALTER TABLE tasks ADD COLUMN significance TEXT DEFAULT 'medium'",
-  "ALTER TABLE tasks ADD COLUMN auto_execute INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN source TEXT",
-]
-for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
+const db = initDatabase(DB_PATH)
+const rateLimiter = new RateLimiter()
 
 function log(msg) { console.log('[' + new Date().toISOString() + '] ' + msg) }
+
+// ── Git & PR helpers ──────────────────────────────────────────────────────────
+
+function gitCmd(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
+  } catch(e) {
+    log('Git error: ' + e.message)
+    return null
+  }
+}
+
+async function createPR(taskId, taskTitle) {
+  const branchName = 'task/' + taskId + '-' + taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 40)
+  try {
+    gitCmd('git checkout -b ' + branchName)
+    gitCmd('git add -A')
+    gitCmd('git commit -m "task: ' + taskTitle + ' (#' + taskId + ')"')
+    gitCmd('git push -u origin HEAD')
+
+    const prCmd = 'gh pr create --title "' + taskTitle.replace(/"/g, '\\"') + '" --body "Auto-generated PR for task #' + taskId + '" --base main'
+    const prOutput = gitCmd(prCmd)
+    const prUrl = prOutput ? prOutput.match(/https:\/\/github\.com\/[^\s]+/)[0] : null
+
+    if (prUrl) {
+      log('Created PR: ' + prUrl)
+      try {
+        gitCmd('gh pr merge ' + branchName + ' --squash --delete-branch --auto')
+      } catch(e) {}
+      return prUrl
+    }
+  } catch(e) {
+    log('PR creation failed: ' + e.message)
+    gitCmd('git checkout main')
+  }
+  return null
+}
 
 // ── Telegram ──────────────────────────────────────────────────────────────────
 
@@ -65,22 +74,22 @@ function tgPost(path, payload) {
 }
 
 async function sendMsg(chatId, text, opts) {
-  const res = await tgPost('/sendMessage', Object.assign({ chat_id: chatId, text }, opts || {}))
+  const res = await rateLimiter.enqueue(() => tgPost('/sendMessage', Object.assign({ chat_id: chatId, text }, opts || {})), chatId)
   return res && res.result ? res.result.message_id : null
 }
 
 async function deleteMsg(chatId, msgId) {
-  return tgPost('/deleteMessage', { chat_id: chatId, message_id: parseInt(msgId) })
+  return rateLimiter.enqueue(() => tgPost('/deleteMessage', { chat_id: chatId, message_id: parseInt(msgId) }), chatId)
 }
 
 async function sendTyping(chatId) {
-  return tgPost('/sendChatAction', { chat_id: chatId, action: 'typing' })
+  return rateLimiter.enqueue(() => tgPost('/sendChatAction', { chat_id: chatId, action: 'typing' }), chatId)
 }
 
 async function createTopic(name) {
   if (!GROUP_ID) return null
   try {
-    const res = await tgPost('/createForumTopic', { chat_id: GROUP_ID, name: name.substring(0, 128) })
+    const res = await rateLimiter.enqueue(() => tgPost('/createForumTopic', { chat_id: GROUP_ID, name: name.substring(0, 128) }), GROUP_ID)
     if (res && res.result) return res.result.message_thread_id
   } catch(e) { log('createTopic failed: ' + e.message) }
   return null
@@ -88,7 +97,7 @@ async function createTopic(name) {
 
 async function closeTopic(topicId) {
   if (!GROUP_ID || !topicId) return
-  try { await tgPost('/closeForumTopic', { chat_id: GROUP_ID, message_thread_id: topicId }) } catch(e) {}
+  try { await rateLimiter.enqueue(() => tgPost('/closeForumTopic', { chat_id: GROUP_ID, message_thread_id: topicId }), GROUP_ID) } catch(e) {}
 }
 
 async function topicMsg(topicId, text, parseMode) {
@@ -217,9 +226,13 @@ async function implementTask(task) {
       task.description + '\n\nApproved plan:\n' + (task.plan || ''),
       { sysPrompt, env: { CURRENT_TASK_ID: String(task.id) } }
     )
-    db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(result, task.id)
-    if (topicId) { await topicMsg(topicId, '✅ *Done*\n\n' + result.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
-    log('Task #' + task.id + ' done')
+
+    const prUrl = await createPR(task.id, task.title || 'Task')
+    const finalResult = prUrl ? 'PR: ' + prUrl + '\n\n' + result : result
+
+    db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(finalResult, task.id)
+    if (topicId) { await topicMsg(topicId, '✅ *Done*\n\n' + (prUrl ? '🔗 ' + prUrl + '\n\n' : '') + result.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
+    log('Task #' + task.id + ' done' + (prUrl ? ' (PR: ' + prUrl + ')' : ''))
   } catch(e) {
     db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(e.message, task.id)
     if (topicId) await topicMsg(topicId, '❌ Failed: ' + e.message)

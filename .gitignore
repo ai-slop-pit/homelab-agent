@@ -10,3 +10,6 @@ logs/
 # Root npm lock (node_modules handled above)
 package-lock.json
 .config/
+
+# Shared library modules (no need to track generated files)
+lib/

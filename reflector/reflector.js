@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
-const Database = require('better-sqlite3')
+const initDatabase = require('../lib/db')
 const fs = require('fs')
 const path = require('path')
 const { spawn } = require('child_process')
+const AsyncLogger = require('../lib/logger')
 
 const DB_PATH = '/opt/claude-agent/tasks.db'
 const PROJECT_ROOT = '/opt/claude-agent'
@@ -12,31 +13,11 @@ const REFLECTOR_LOG = path.join(LOGS_DIR, 'reflector.log')
 
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
-const db = new Database(DB_PATH)
-
-// Apply migrations
-const MIGRATIONS = [
-  "ALTER TABLE tasks ADD COLUMN session_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_message_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'chat'",
-  "ALTER TABLE tasks ADD COLUMN title TEXT",
-  "ALTER TABLE tasks ADD COLUMN plan TEXT",
-  "ALTER TABLE tasks ADD COLUMN progress TEXT",
-  "ALTER TABLE tasks ADD COLUMN created_by TEXT DEFAULT 'user'",
-  "ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN rejection_notes TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_topic_id INTEGER",
-  "ALTER TABLE tasks ADD COLUMN significance TEXT DEFAULT 'medium'",
-  "ALTER TABLE tasks ADD COLUMN auto_execute INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN source TEXT",
-]
-for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
+const logger = new AsyncLogger(REFLECTOR_LOG)
+const db = initDatabase(DB_PATH)
 
 function log(msg) {
-  const line = '[' + new Date().toISOString() + '] ' + msg
-  console.log(line)
-  fs.appendFileSync(REFLECTOR_LOG, line + '\n')
+  logger.log(msg)
 }
 
 // ── Analysis: Codebase Structure ──────────────────────────────────────────────
@@ -227,7 +208,7 @@ async function generateIdeas() {
 function createImprovement(idea) {
   try {
     const sig = idea.significance || 'medium'
-    const autoExec = sig === 'low' ? 1 : 0
+    const autoExec = (sig === 'low' || sig === 'medium') ? 1 : 0
     const res = db.prepare(
       "INSERT INTO tasks (chat_id, description, type, title, status, created_by, significance, auto_execute, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(

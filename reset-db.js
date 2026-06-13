@@ -1,0 +1,7 @@
+require('dotenv').config()
+const Database = require('better-sqlite3')
+const db = new Database('/opt/claude-agent/tasks.db')
+// Keep only tasks #1-9 (the original ones)
+db.prepare("DELETE FROM tasks WHERE id > 9").run()
+const remaining = db.prepare("SELECT COUNT(*) as count FROM tasks").get()
+console.log('Reset complete. Remaining tasks:', remaining.count)

@@ -1,0 +1,5 @@
+require('dotenv').config({ path: '/opt/claude-agent/.env' })
+const Database = require('better-sqlite3')
+const db = new Database('/opt/claude-agent/tasks.db')
+const rows = db.prepare("SELECT id, title, type, status, significance, auto_execute, priority FROM tasks WHERE type='improvement' OR type='work' ORDER BY id DESC LIMIT 15").all()
+rows.forEach(r => console.log(`#${String(r.id).padEnd(3)} ${r.status.padEnd(10)} ${(r.significance||'N/A').padEnd(6)} auto=${r.auto_execute} pri=${r.priority} ${r.title.substring(0, 40)}`))
