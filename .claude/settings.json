@@ -95,6 +95,7 @@
       "Bash(pgrep *)",
       "Bash(sleep *)",
       "Bash(timeout *)",
+      "Bash(crontab *)",
       "Bash(xargs *)",
       "Bash(dmesg *)",
       "Bash(lsof *)",

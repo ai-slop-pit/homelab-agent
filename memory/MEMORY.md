@@ -63,3 +63,4 @@ Use this when you recognize a task type. Always check index first before reading
 - [Setup Task Learning](setup_task_learning.md) — Extract bot IDs, API keys, config from setup tasks → persist in `.claude/setup-artifacts/` + index in `.claude/ARTIFACTS.md`
 - [Reflector System](reflector_system.md) — Autonomous self-improvement: analyzes code, researches web, generates improvement ideas, creates tasks for worker
 - [Async Logging Implementation](async_logging_implementation.md) — Non-blocking queue-based logger with batching replaces fs.appendFileSync()
+- [Error Handling for Telegram](error_handling_telegram.md) — Wrapped bot.js and worker.js handlers in try-catch, added global unhandledRejection handlers

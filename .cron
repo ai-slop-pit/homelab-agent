@@ -1,0 +1,7 @@
+# CT112 Agent - Scheduled Tasks
+# Format: minute hour day month day-of-week command
+
+# Reflector: Analyze codebase hourly for improvements
+0 * * * * cd /opt/claude-agent && node reflector/reflector.js once >> logs/cron.log 2>&1
+
+# Add more scheduled jobs here as needed

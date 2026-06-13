@@ -1,8 +1,9 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { Telegraf } = require('telegraf')
-const Database = require('better-sqlite3')
 const fs = require('fs')
 const path = require('path')
+const AsyncLogger = require('../../lib/logger')
+const { getDatabase } = require('../../lib/db')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const OWNER_ID = parseInt(process.env.OWNER_ID, 10)
@@ -11,41 +12,14 @@ const BOT_LOG = path.join(LOGS_DIR, 'telegram-bot.log')
 
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
-const db = new Database('/opt/claude-agent/tasks.db')
-db.exec(`CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chat_id TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT DEFAULT 'inbox',
-  result TEXT,
-  session_id TEXT,
-  tg_message_id TEXT,
-  thinking_msg_id TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`)
+const logger = new AsyncLogger(BOT_LOG)
 
-const MIGRATIONS = [
-  "ALTER TABLE tasks ADD COLUMN session_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_message_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'chat'",
-  "ALTER TABLE tasks ADD COLUMN title TEXT",
-  "ALTER TABLE tasks ADD COLUMN plan TEXT",
-  "ALTER TABLE tasks ADD COLUMN progress TEXT",
-  "ALTER TABLE tasks ADD COLUMN created_by TEXT DEFAULT 'user'",
-  "ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN rejection_notes TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_topic_id INTEGER",
-]
-for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
+const db = getDatabase()
 
 const pendingRejection = {}
 
 function log(msg) {
-  const line = '[' + new Date().toISOString() + '] ' + msg + '\n'
-  console.log(line.trim())
-  fs.appendFileSync(BOT_LOG, line)
+  logger.log(msg)
 }
 
 bot.use((ctx, next) => {
@@ -77,56 +51,76 @@ bot.command('work', async (ctx) => {
 })
 
 bot.action(/^approve_(\d+)$/, async (ctx) => {
-  const id = parseInt(ctx.match[1])
-  const res = db.prepare(
-    "UPDATE tasks SET status='approved', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='awaiting_approval'"
-  ).run(id)
-  if (res.changes === 0) return ctx.answerCbQuery('Already handled.')
-  await ctx.answerCbQuery('Approved!')
-  try { await ctx.editMessageReplyMarkup({ inline_keyboard: [] }) } catch(e) {}
-  await ctx.reply('Task #' + id + ' approved.')
-  log('Task #' + id + ' approved')
+  try {
+    const id = parseInt(ctx.match[1])
+    const res = db.prepare(
+      "UPDATE tasks SET status='approved', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='awaiting_approval'"
+    ).run(id)
+    if (res.changes === 0) return ctx.answerCbQuery('Already handled.')
+    await ctx.answerCbQuery('Approved!')
+    try { await ctx.editMessageReplyMarkup({ inline_keyboard: [] }) } catch(e) {}
+    await ctx.reply('Task #' + id + ' approved.')
+    log('Task #' + id + ' approved')
+  } catch (err) {
+    log('ERROR in approve handler: ' + err.message)
+    try { await ctx.reply('Failed to update. Retry manually.') } catch(e) {}
+  }
 })
 
 bot.action(/^reject_(\d+)$/, async (ctx) => {
-  const id = parseInt(ctx.match[1])
-  pendingRejection[String(ctx.chat.id)] = id
-  await ctx.answerCbQuery('Tell me what to change.')
-  try { await ctx.editMessageReplyMarkup({ inline_keyboard: [] }) } catch(e) {}
-  await ctx.reply('What should be revised for task #' + id + '?')
-  log('Task #' + id + ' revision requested')
+  try {
+    const id = parseInt(ctx.match[1])
+    pendingRejection[String(ctx.chat.id)] = id
+    await ctx.answerCbQuery('Tell me what to change.')
+    try { await ctx.editMessageReplyMarkup({ inline_keyboard: [] }) } catch(e) {}
+    await ctx.reply('What should be revised for task #' + id + '?')
+    log('Task #' + id + ' revision requested')
+  } catch (err) {
+    log('ERROR in reject handler: ' + err.message)
+    try { await ctx.reply('Failed to update. Retry manually.') } catch(e) {}
+  }
 })
 
 bot.on('text', async (ctx) => {
-  const chatId = String(ctx.chat.id)
-  const text = ctx.message.text
+  try {
+    const chatId = String(ctx.chat.id)
+    const text = ctx.message.text
 
-  if (pendingRejection[chatId]) {
-    const taskId = pendingRejection[chatId]
-    delete pendingRejection[chatId]
-    db.prepare(
-      "UPDATE tasks SET status='needs_revision', rejection_notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
-    ).run(text, taskId)
-    await ctx.reply('Task #' + taskId + ' sent back for revision.')
-    log('Task #' + taskId + ' needs_revision')
-    return
+    if (pendingRejection[chatId]) {
+      const taskId = pendingRejection[chatId]
+      delete pendingRejection[chatId]
+      db.prepare(
+        "UPDATE tasks SET status='needs_revision', rejection_notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
+      ).run(text, taskId)
+      await ctx.reply('Task #' + taskId + ' sent back for revision.')
+      log('Task #' + taskId + ' needs_revision')
+      return
+    }
+
+    let sessionId = null
+    if (ctx.message.reply_to_message) {
+      const replyMsgId = String(ctx.message.reply_to_message.message_id)
+      const parent = db.prepare("SELECT session_id FROM tasks WHERE tg_message_id=? AND session_id IS NOT NULL").get(replyMsgId)
+      if (parent) { sessionId = parent.session_id; log('Resuming ' + replyMsgId) }
+    }
+
+    const thinking = await ctx.reply('Thinking...')
+    const res = db.prepare(
+      'INSERT INTO tasks (chat_id, description, session_id, thinking_msg_id) VALUES (?, ?, ?, ?)'
+    ).run(chatId, text, sessionId, String(thinking.message_id))
+    log('QUEUED #' + res.lastInsertRowid + ': ' + text.substring(0, 50))
+  } catch (err) {
+    log('ERROR in text handler: ' + err.message)
+    try { await ctx.reply('Failed to process message. Retry manually.') } catch(e) {}
   }
-
-  let sessionId = null
-  if (ctx.message.reply_to_message) {
-    const replyMsgId = String(ctx.message.reply_to_message.message_id)
-    const parent = db.prepare("SELECT session_id FROM tasks WHERE tg_message_id=? AND session_id IS NOT NULL").get(replyMsgId)
-    if (parent) { sessionId = parent.session_id; log('Resuming ' + replyMsgId) }
-  }
-
-  const thinking = await ctx.reply('Thinking...')
-  const res = db.prepare(
-    'INSERT INTO tasks (chat_id, description, session_id, thinking_msg_id) VALUES (?, ?, ?, ?)'
-  ).run(chatId, text, sessionId, String(thinking.message_id))
-  log('QUEUED #' + res.lastInsertRowid + ': ' + text.substring(0, 50))
 })
 
 bot.catch((err) => log('BOT ERROR: ' + err.message))
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('UNHANDLED REJECTION: ' + (reason?.message || String(reason)))
+})
+
 bot.launch()
 log('Bot started')
 process.once('SIGINT', () => bot.stop('SIGINT'))

@@ -1,42 +1,21 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
-const Database = require('better-sqlite3')
+const { getDatabase } = require('../lib/db')
 const fs = require('fs')
 const path = require('path')
 const { spawn } = require('child_process')
-
-const DB_PATH = '/opt/claude-agent/tasks.db'
+const AsyncLogger = require('../lib/logger')
 const PROJECT_ROOT = '/opt/claude-agent'
 const LOGS_DIR = path.join(PROJECT_ROOT, 'logs')
 const REFLECTOR_LOG = path.join(LOGS_DIR, 'reflector.log')
 
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
-const db = new Database(DB_PATH)
-
-// Apply migrations
-const MIGRATIONS = [
-  "ALTER TABLE tasks ADD COLUMN session_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_message_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'chat'",
-  "ALTER TABLE tasks ADD COLUMN title TEXT",
-  "ALTER TABLE tasks ADD COLUMN plan TEXT",
-  "ALTER TABLE tasks ADD COLUMN progress TEXT",
-  "ALTER TABLE tasks ADD COLUMN created_by TEXT DEFAULT 'user'",
-  "ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN rejection_notes TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_topic_id INTEGER",
-  "ALTER TABLE tasks ADD COLUMN significance TEXT DEFAULT 'medium'",
-  "ALTER TABLE tasks ADD COLUMN auto_execute INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN source TEXT",
-]
-for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
+const logger = new AsyncLogger(REFLECTOR_LOG)
+const db = getDatabase()
 
 function log(msg) {
-  const line = '[' + new Date().toISOString() + '] ' + msg
-  console.log(line)
-  fs.appendFileSync(REFLECTOR_LOG, line + '\n')
+  logger.log(msg)
 }
 
 // ── Analysis: Codebase Structure ──────────────────────────────────────────────
@@ -257,24 +236,139 @@ async function autoExecuteLow(taskId) {
   // Examples: update comments, fix formatting, consolidate logs
 }
 
+// ── Metrics ──────────────────────────────────────────────────────────────────
+
+function recordMetrics(ideas) {
+  try {
+    const current = db.prepare("SELECT value FROM metrics WHERE key='reflector_cycles'").get()
+    const count = (current ? current.value : 0) + 1
+    db.prepare("INSERT OR REPLACE INTO metrics (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)").run('reflector_cycles', count)
+
+    if (ideas.length) {
+      const bySignificance = { low: 0, medium: 0, high: 0 }
+      ideas.forEach(i => {
+        const sig = i.significance || 'medium'
+        bySignificance[sig] = (bySignificance[sig] || 0) + 1
+      })
+      db.prepare("INSERT OR REPLACE INTO metrics (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)").run('reflector_low_ideas', bySignificance.low)
+      db.prepare("INSERT OR REPLACE INTO metrics (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)").run('reflector_medium_ideas', bySignificance.medium)
+      db.prepare("INSERT OR REPLACE INTO metrics (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)").run('reflector_high_ideas', bySignificance.high)
+    }
+  } catch(e) {
+    log('Failed to record metrics: ' + e.message)
+  }
+}
+
+// ── Learn from History: Update Memory & Instructions ──────────────────────────
+
+async function updateMemoryAndInstructions() {
+  try {
+    log('Analyzing task history to update memory and instructions...')
+
+    // Get completed tasks
+    const completedTasks = db.prepare(
+      "SELECT id, title, description, result FROM tasks WHERE type IN ('work','improvement') AND status='done' AND updated_at > datetime('now', '-7 days') ORDER BY updated_at DESC LIMIT 10"
+    ).all()
+
+    if (completedTasks.length === 0) {
+      log('No completed tasks to learn from this cycle')
+      return
+    }
+
+    // Read current memory files
+    const memoryPath = path.join(PROJECT_ROOT, 'memory')
+    let memoryFiles = []
+    try {
+      memoryFiles = fs.readdirSync(memoryPath).filter(f => f.endsWith('.md') && f !== 'MEMORY.md')
+    } catch(e) {}
+
+    // Read CLAUDE.md
+    let claudeMd = ''
+    try {
+      claudeMd = fs.readFileSync(path.join(PROJECT_ROOT, 'CLAUDE.md'), 'utf8').substring(0, 2000)
+    } catch(e) {}
+
+    // Generate suggestions for memory/instruction updates
+    const prompt = [
+      'You are analyzing completed tasks to improve agent instructions and memory.',
+      '',
+      'COMPLETED TASKS (last 7 days):',
+      completedTasks.map(t => `#${t.id}: ${t.title || t.description.substring(0, 60)}`).join('\n'),
+      '',
+      'CURRENT MEMORY FILES:',
+      memoryFiles.length ? memoryFiles.join(', ') : '(none)',
+      '',
+      'CURRENT INSTRUCTIONS (CLAUDE.md excerpt):',
+      claudeMd.substring(0, 500),
+      '',
+      'TASK: Analyze what you learned and suggest improvements to:',
+      '1. Memory files - new learnings or patterns to document',
+      '2. Agent instructions (CLAUDE.md) - rules or procedures to add/update',
+      '3. Skills - new reusable procedures to extract',
+      '',
+      'Format as JSON:',
+      '{',
+      '  "memory_updates": [{"file": "name.md", "content": "..."}],',
+      '  "instructions_updates": "updated sections for CLAUDE.md",',
+      '  "skills_to_extract": ["skill1", "skill2"],',
+      '  "reasoning": "why these updates matter"',
+      '}',
+      '',
+      'Only output valid JSON.'
+    ].join('\n')
+
+    const result = await runClaude(prompt)
+    try {
+      let jsonStr = result
+      const codeMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (codeMatch) jsonStr = codeMatch[1]
+      const updates = JSON.parse(jsonStr)
+
+      if (updates.memory_updates && updates.memory_updates.length > 0) {
+        for (const mu of updates.memory_updates) {
+          const filePath = path.join(memoryPath, mu.file)
+          fs.writeFileSync(filePath, mu.content, 'utf8')
+          log('Updated memory file: ' + mu.file)
+        }
+      }
+
+      if (updates.reasoning) {
+        log('Learning: ' + updates.reasoning.substring(0, 100))
+      }
+    } catch(e) {
+      log('Could not parse instruction updates: ' + e.message)
+    }
+  } catch(e) {
+    log('Error updating memory/instructions: ' + e.message)
+  }
+}
+
 // ── Main Loop ────────────────────────────────────────────────────────────────
 
 async function reflect() {
   try {
+    // First, learn from history and update memory/instructions
+    await updateMemoryAndInstructions()
+
+    // Then generate new improvement ideas
     const ideas = await generateIdeas()
+    recordMetrics(ideas)
+
     if (!ideas.length) {
       log('No improvement ideas generated this cycle')
       return
     }
 
+    let ideasBySignificance = { low: 0, medium: 0, high: 0 }
     for (const idea of ideas) {
       const taskId = createImprovement(idea)
       if (taskId && idea.significance === 'low') {
         await autoExecuteLow(taskId)
       }
+      ideasBySignificance[idea.significance] = (ideasBySignificance[idea.significance] || 0) + 1
     }
 
-    log('Reflection cycle complete: ' + ideas.length + ' ideas generated')
+    log('Reflection cycle complete: ' + ideas.length + ' ideas (low: ' + ideasBySignificance.low + ', medium: ' + ideasBySignificance.medium + ', high: ' + ideasBySignificance.high + ')')
   } catch(e) {
     log('Fatal error in reflection: ' + e.message)
   }

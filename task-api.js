@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
-const Database = require('better-sqlite3')
+const { getDatabase } = require('./lib/db')
 
-const db = new Database('/opt/claude-agent/tasks.db')
+const db = getDatabase()
 const taskId = parseInt(process.env.CURRENT_TASK_ID)
 const args = process.argv.slice(2)
 const cmd = args[0]

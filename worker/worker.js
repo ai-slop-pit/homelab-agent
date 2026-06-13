@@ -1,49 +1,54 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
-const Database = require('better-sqlite3')
 const { RateLimiter } = require('../lib/rateLimit')
-const { spawn } = require('child_process')
+const { getDatabase } = require('../lib/db')
+const { spawn, execSync } = require('child_process')
 const https = require('https')
+const path = require('path')
+const AsyncLogger = require('../lib/logger')
 
-const DB_PATH = '/opt/claude-agent/tasks.db'
 const POLL_INTERVAL = 10000
 const BOT_TOKEN = process.env.BOT_TOKEN
 const GROUP_ID = process.env.GROUP_ID
 const PLANNING_TIMEOUT_MS = 10 * 60 * 1000
+const LOGS_DIR = '/opt/claude-agent/logs'
+const WORKER_LOG = path.join(LOGS_DIR, 'worker.log')
 
-const db = new Database(DB_PATH)
+const db = getDatabase()
 const rateLimiter = new RateLimiter()
-db.exec(`CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chat_id TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT DEFAULT 'inbox',
-  result TEXT,
-  session_id TEXT,
-  tg_message_id TEXT,
-  thinking_msg_id TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`)
+const logger = new AsyncLogger(WORKER_LOG)
 
-const MIGRATIONS = [
-  "ALTER TABLE tasks ADD COLUMN session_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_message_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN thinking_msg_id TEXT",
-  "ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'chat'",
-  "ALTER TABLE tasks ADD COLUMN title TEXT",
-  "ALTER TABLE tasks ADD COLUMN plan TEXT",
-  "ALTER TABLE tasks ADD COLUMN progress TEXT",
-  "ALTER TABLE tasks ADD COLUMN created_by TEXT DEFAULT 'user'",
-  "ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN rejection_notes TEXT",
-  "ALTER TABLE tasks ADD COLUMN tg_topic_id INTEGER",
-  "ALTER TABLE tasks ADD COLUMN significance TEXT DEFAULT 'medium'",
-  "ALTER TABLE tasks ADD COLUMN auto_execute INTEGER DEFAULT 0",
-  "ALTER TABLE tasks ADD COLUMN source TEXT",
-]
-for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
+function log(msg) { logger.log(msg) }
 
-function log(msg) { console.log('[' + new Date().toISOString() + '] ' + msg) }
+// ── Metrics ───────────────────────────────────────────────────────────────────
+
+function getMetric(key) {
+  try {
+    const row = db.prepare("SELECT value FROM metrics WHERE key=?").get(key)
+    return row ? row.value : 0
+  } catch(e) { return 0 }
+}
+
+function setMetric(key, value) {
+  try {
+    db.prepare("INSERT OR REPLACE INTO metrics (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)").run(key, value)
+  } catch(e) { log('setMetric failed: ' + e.message) }
+}
+
+function incrementMetric(key, delta = 1) {
+  try {
+    const current = getMetric(key)
+    setMetric(key, current + delta)
+  } catch(e) { log('incrementMetric failed: ' + e.message) }
+}
+
+function getMetrics() {
+  try {
+    const rows = db.prepare("SELECT key, value FROM metrics").all()
+    const metrics = {}
+    rows.forEach(r => metrics[r.key] = r.value)
+    return metrics
+  } catch(e) { return {} }
+}
 
 // ── Telegram ──────────────────────────────────────────────────────────────────
 
@@ -160,6 +165,7 @@ async function planTask(task) {
   ).run('planning', task.id, task.status)
   if (claimed.changes === 0) return
 
+  const planStartTime = Date.now()
   const isRevision = task.status === 'needs_revision'
   const prompt = [
     'You are planning a work task. Read relevant memory and code files first.',
@@ -172,9 +178,14 @@ async function planTask(task) {
 
   try {
     const { result: plan } = await runClaude(prompt, { addDir: '/opt/claude-agent' })
+    const planTimeMs = Date.now() - planStartTime
+    incrementMetric('tasks_planned')
+    incrementMetric('total_plan_time_ms', planTimeMs)
+    incrementMetric('plan_count')
+
     const title = task.title || task.description.substring(0, 80)
     const topicId = await createTopic('📋 ' + title)
-    if (topicId) await topicMsg(topicId, '*Plan ready for review*\n\n' + plan.substring(0, 3500), 'Markdown')
+    if (topicId) await topicMsg(topicId, '@Audrius 📋 *Plan ready for review*\n\n' + plan.substring(0, 3500), 'Markdown')
 
     const preview = plan.substring(0, 700) + (plan.length > 700 ? '...' : '')
     await sendMsg(task.chat_id, '📋 *Plan: ' + title + '*\n\n' + preview, {
@@ -195,6 +206,38 @@ async function planTask(task) {
   }
 }
 
+// ── Git: Commit changes ───────────────────────────────────────────────────────
+
+function getGitHubUrl() {
+  try {
+    const cwd = '/opt/claude-agent'
+    const remote = execSync('git remote get-url origin', { cwd, encoding: 'utf8' }).trim()
+    const match = remote.match(/github\.com[:/]([^/]+)\/(.+?)(\.git)?$/)
+    if (match) return `https://github.com/${match[1]}/${match[2]}`
+    return null
+  } catch(e) { return null }
+}
+
+function commitChanges(taskId, taskTitle, isHighRisk) {
+  try {
+    const cwd = '/opt/claude-agent'
+    const status = execSync('git status --porcelain', { cwd, encoding: 'utf8' }).trim()
+    if (!status) return null // No changes
+
+    execSync('git add -A', { cwd })
+    const msg = `task: ${taskTitle.substring(0, 50)} (#${taskId})`
+    execSync(`git commit -m "${msg}"`, { cwd, env: Object.assign({}, process.env, {GIT_AUTHOR_NAME: 'Agent', GIT_AUTHOR_EMAIL: 'agent@localhost', GIT_COMMITTER_NAME: 'Agent', GIT_COMMITTER_EMAIL: 'agent@localhost'}) })
+
+    const hash = execSync('git rev-parse --short HEAD', { cwd, encoding: 'utf8' }).trim()
+    const baseUrl = getGitHubUrl()
+    const commitUrl = baseUrl ? `${baseUrl}/commit/${hash}` : null
+    return { hash, url: commitUrl }
+  } catch(e) {
+    log('Commit failed: ' + e.message)
+    return null
+  }
+}
+
 // ── Work: Implement ───────────────────────────────────────────────────────────
 
 async function implementTask(task) {
@@ -204,8 +247,16 @@ async function implementTask(task) {
   ).run('in_progress', task.id, 'approved')
   if (claimed.changes === 0) return
 
-  const topicId = task.tg_topic_id
-  if (topicId) await topicMsg(topicId, '⚡ Starting implementation...')
+  let topicId = task.tg_topic_id
+  // Create topic for auto-executed improvement tasks
+  if (!topicId && task.type === 'improvement') {
+    const title = task.title || task.description.substring(0, 80)
+    topicId = await createTopic('⚡ ' + title)
+    if (topicId) db.prepare('UPDATE tasks SET tg_topic_id=? WHERE id=?').run(topicId, task.id)
+    if (topicId) await topicMsg(topicId, '@Audrius 🤖 *Auto-executing improvement*\n\n' + (task.plan || 'No plan'), 'Markdown')
+  }
+
+  if (topicId) await topicMsg(topicId, '@Audrius ⚡ Starting implementation...')
 
   const sysPrompt = [
     'You are implementing an approved work task. Post progress as you go:',
@@ -219,12 +270,18 @@ async function implementTask(task) {
       task.description + '\n\nApproved plan:\n' + (task.plan || ''),
       { sysPrompt, env: { CURRENT_TASK_ID: String(task.id) } }
     )
-    db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(result, task.id)
-    if (topicId) { await topicMsg(topicId, '✅ *Done*\n\n' + result.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
+
+    const commit = commitChanges(task.id, task.title || task.description.substring(0, 80), task.significance === 'high')
+    const finalResult = commit ? `Commit: ${commit.hash}\nURL: ${commit.url || 'no-github-link'}\n\n${result}` : result
+
+    db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(finalResult, task.id)
+    incrementMetric('tasks_completed')
+    if (topicId) { await topicMsg(topicId, '@Audrius ✅ *Done*\n\n' + finalResult.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
     log('Task #' + task.id + ' done')
   } catch(e) {
     db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(e.message, task.id)
-    if (topicId) await topicMsg(topicId, '❌ Failed: ' + e.message)
+    incrementMetric('tasks_failed')
+    if (topicId) await topicMsg(topicId, '@Audrius ❌ Failed: ' + e.message)
     log('Task #' + task.id + ' failed: ' + e.message)
   }
 }
@@ -273,29 +330,37 @@ function recoverStuck() {
 }
 
 async function poll() {
-  recoverStuck()
-  const task = db.prepare(`
-    SELECT * FROM tasks WHERE
-      (type = 'chat' AND status = 'inbox')
-      OR (type IS NULL AND status = 'inbox')
-      OR (type = 'work' AND status = 'backlog')
-      OR (type = 'work' AND status = 'approved')
-      OR (type = 'work' AND status = 'needs_revision')
-      OR (type = 'improvement' AND status = 'approved')
-      OR (type = 'improvement' AND status = 'backlog')
-    ORDER BY priority DESC, created_at ASC LIMIT 1
-  `).get()
-  if (!task) return
-  if (task.type === 'work') {
-    if (task.status === 'backlog' || task.status === 'needs_revision') await planTask(task)
-    else if (task.status === 'approved') await implementTask(task)
-  } else if (task.type === 'improvement') {
-    if (task.status === 'approved') await implementTask(task)
-    else if (task.status === 'backlog') await planTask(task)
-  } else {
-    await chatTask(task)
+  try {
+    recoverStuck()
+    const task = db.prepare(`
+      SELECT * FROM tasks WHERE
+        (type = 'chat' AND status = 'inbox')
+        OR (type IS NULL AND status = 'inbox')
+        OR (type = 'work' AND status = 'backlog')
+        OR (type = 'work' AND status = 'approved')
+        OR (type = 'work' AND status = 'needs_revision')
+        OR (type = 'improvement' AND status = 'approved')
+        OR (type = 'improvement' AND status = 'backlog')
+      ORDER BY priority DESC, created_at ASC LIMIT 1
+    `).get()
+    if (!task) return
+    if (task.type === 'work') {
+      if (task.status === 'backlog' || task.status === 'needs_revision') await planTask(task)
+      else if (task.status === 'approved') await implementTask(task)
+    } else if (task.type === 'improvement') {
+      if (task.status === 'approved') await implementTask(task)
+      else if (task.status === 'backlog') await planTask(task)
+    } else {
+      await chatTask(task)
+    }
+  } catch (err) {
+    log('ERROR in poll: ' + err.message)
   }
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('UNHANDLED REJECTION: ' + (reason?.message || String(reason)))
+})
 
 log('Worker started')
 poll()
