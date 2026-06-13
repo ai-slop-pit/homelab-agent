@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const Database = require('better-sqlite3')
+const { RateLimiter } = require('../lib/rateLimit')
 const { spawn } = require('child_process')
 const https = require('https')
 
@@ -10,6 +11,7 @@ const GROUP_ID = process.env.GROUP_ID
 const PLANNING_TIMEOUT_MS = 10 * 60 * 1000
 
 const db = new Database(DB_PATH)
+const rateLimiter = new RateLimiter()
 db.exec(`CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   chat_id TEXT NOT NULL,
@@ -65,22 +67,22 @@ function tgPost(path, payload) {
 }
 
 async function sendMsg(chatId, text, opts) {
-  const res = await tgPost('/sendMessage', Object.assign({ chat_id: chatId, text }, opts || {}))
+  const res = await rateLimiter.enqueue(() => tgPost('/sendMessage', Object.assign({ chat_id: chatId, text }, opts || {})), chatId)
   return res && res.result ? res.result.message_id : null
 }
 
 async function deleteMsg(chatId, msgId) {
-  return tgPost('/deleteMessage', { chat_id: chatId, message_id: parseInt(msgId) })
+  return rateLimiter.enqueue(() => tgPost('/deleteMessage', { chat_id: chatId, message_id: parseInt(msgId) }), chatId)
 }
 
 async function sendTyping(chatId) {
-  return tgPost('/sendChatAction', { chat_id: chatId, action: 'typing' })
+  return rateLimiter.enqueue(() => tgPost('/sendChatAction', { chat_id: chatId, action: 'typing' }), chatId)
 }
 
 async function createTopic(name) {
   if (!GROUP_ID) return null
   try {
-    const res = await tgPost('/createForumTopic', { chat_id: GROUP_ID, name: name.substring(0, 128) })
+    const res = await rateLimiter.enqueue(() => tgPost('/createForumTopic', { chat_id: GROUP_ID, name: name.substring(0, 128) }), GROUP_ID)
     if (res && res.result) return res.result.message_thread_id
   } catch(e) { log('createTopic failed: ' + e.message) }
   return null
@@ -88,7 +90,7 @@ async function createTopic(name) {
 
 async function closeTopic(topicId) {
   if (!GROUP_ID || !topicId) return
-  try { await tgPost('/closeForumTopic', { chat_id: GROUP_ID, message_thread_id: topicId }) } catch(e) {}
+  try { await rateLimiter.enqueue(() => tgPost('/closeForumTopic', { chat_id: GROUP_ID, message_thread_id: topicId }), GROUP_ID) } catch(e) {}
 }
 
 async function topicMsg(topicId, text, parseMode) {

@@ -227,7 +227,7 @@ async function generateIdeas() {
 function createImprovement(idea) {
   try {
     const sig = idea.significance || 'medium'
-    const autoExec = sig === 'low' ? 1 : 0
+    const autoExec = (sig === 'low' || sig === 'medium') ? 1 : 0
     const res = db.prepare(
       "INSERT INTO tasks (chat_id, description, type, title, status, created_by, significance, auto_execute, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(
