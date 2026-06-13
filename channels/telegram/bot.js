@@ -3,6 +3,7 @@ const { Telegraf } = require('telegraf')
 const Database = require('better-sqlite3')
 const fs = require('fs')
 const path = require('path')
+const { validateTitle, validateDescription, validateRejectionNotes } = require('../../lib/validate')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const OWNER_ID = parseInt(process.env.OWNER_ID, 10)
@@ -66,9 +67,10 @@ bot.command('tasks', (ctx) => {
 })
 
 bot.command('work', async (ctx) => {
-  const desc = ctx.message.text.replace(/^\/work\s*/i, '').trim()
+  let desc = ctx.message.text.replace(/^\/work\s*/i, '').trim()
   if (!desc) return ctx.reply('Usage: /work <description of what to build or improve>')
-  const title = desc.substring(0, 80)
+  desc = validateDescription(desc)
+  const title = validateTitle(desc)
   const res = db.prepare(
     "INSERT INTO tasks (chat_id, description, type, title, status, created_by) VALUES (?, ?, 'work', ?, 'backlog', 'user')"
   ).run(String(ctx.chat.id), desc, title)
@@ -104,9 +106,10 @@ bot.on('text', async (ctx) => {
   if (pendingRejection[chatId]) {
     const taskId = pendingRejection[chatId]
     delete pendingRejection[chatId]
+    const validatedNotes = validateRejectionNotes(text)
     db.prepare(
       "UPDATE tasks SET status='needs_revision', rejection_notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
-    ).run(text, taskId)
+    ).run(validatedNotes, taskId)
     await ctx.reply('Task #' + taskId + ' sent back for revision.')
     log('Task #' + taskId + ' needs_revision')
     return
@@ -120,10 +123,11 @@ bot.on('text', async (ctx) => {
   }
 
   const thinking = await ctx.reply('Thinking...')
+  const validatedText = validateDescription(text)
   const res = db.prepare(
     'INSERT INTO tasks (chat_id, description, session_id, thinking_msg_id) VALUES (?, ?, ?, ?)'
-  ).run(chatId, text, sessionId, String(thinking.message_id))
-  log('QUEUED #' + res.lastInsertRowid + ': ' + text.substring(0, 50))
+  ).run(chatId, validatedText, sessionId, String(thinking.message_id))
+  log('QUEUED #' + res.lastInsertRowid + ': ' + validatedText.substring(0, 50))
 })
 
 bot.catch((err) => log('BOT ERROR: ' + err.message))

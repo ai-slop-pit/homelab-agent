@@ -1,0 +1,5 @@
+require('dotenv').config()
+const Database = require('better-sqlite3')
+const db = new Database('tasks.db')
+const tasks = db.prepare("SELECT id, title, type, status, significance, auto_execute FROM tasks WHERE id >= 20 ORDER BY id").all()
+tasks.forEach(t => console.log(`#${String(t.id).padEnd(3)} ${t.type.padEnd(12)} ${t.status.padEnd(15)} ${t.significance.padEnd(6)} auto=${t.auto_execute}`))

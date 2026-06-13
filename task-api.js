@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const Database = require('better-sqlite3')
+const { validateTitle, validateDescription } = require('./lib/validate')
 
 const db = new Database('/opt/claude-agent/tasks.db')
 const taskId = parseInt(process.env.CURRENT_TASK_ID)
@@ -36,7 +37,9 @@ if (cmd === 'progress') {
     else if (args[i] === '--description') description = args[++i] || ''
   }
   if (!title) { console.error('Usage: task-api.js create --title "X" [--description "Y"]'); process.exit(1) }
+  title = validateTitle(title)
   if (!description) description = title
+  description = validateDescription(description)
   let chatId = ''
   if (taskId) {
     const parent = db.prepare('SELECT chat_id FROM tasks WHERE id=?').get(taskId)
