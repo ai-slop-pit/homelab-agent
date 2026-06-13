@@ -229,20 +229,23 @@ function createImprovement(idea) {
   try {
     const sig = idea.significance || 'medium'
     const autoExec = (sig === 'low' || sig === 'medium') ? 1 : 0
+    const validatedTitle = validateTitle(idea.title)
+    const validatedDesc = validateDescription(idea.description)
+    const validatedCategory = validateSource(idea.category)
     const res = db.prepare(
       "INSERT INTO tasks (chat_id, description, type, title, status, created_by, significance, auto_execute, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(
       'reflector',
-      idea.description,
+      validatedDesc,
       'improvement',
-      idea.title,
+      validatedTitle,
       autoExec ? 'approved' : 'backlog',
       'reflector',
       sig,
       autoExec,
-      'reflector:' + idea.category
+      'reflector:' + validatedCategory
     )
-    log('Created ' + sig + ' improvement task #' + res.lastInsertRowid + ': ' + idea.title)
+    log('Created ' + sig + ' improvement task #' + res.lastInsertRowid + ': ' + validatedTitle)
     return res.lastInsertRowid
   } catch(e) {
     log('Error creating task: ' + e.message)
