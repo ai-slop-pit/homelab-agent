@@ -4,6 +4,8 @@ const Database = require('better-sqlite3')
 const fs = require('fs')
 const path = require('path')
 const { spawn } = require('child_process')
+const AsyncLogger = require('../lib/logger')
+const { validateTitle, validateDescription, validateSource } = require('../lib/validate')
 
 const DB_PATH = '/opt/claude-agent/tasks.db'
 const PROJECT_ROOT = '/opt/claude-agent'
@@ -12,6 +14,7 @@ const REFLECTOR_LOG = path.join(LOGS_DIR, 'reflector.log')
 
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
+const logger = new AsyncLogger(REFLECTOR_LOG)
 const db = new Database(DB_PATH)
 
 // Apply migrations
@@ -34,9 +37,7 @@ const MIGRATIONS = [
 for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
 
 function log(msg) {
-  const line = '[' + new Date().toISOString() + '] ' + msg
-  console.log(line)
-  fs.appendFileSync(REFLECTOR_LOG, line + '\n')
+  logger.log(msg)
 }
 
 // ── Analysis: Codebase Structure ──────────────────────────────────────────────

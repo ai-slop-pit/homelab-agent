@@ -3,6 +3,7 @@ const { Telegraf } = require('telegraf')
 const Database = require('better-sqlite3')
 const fs = require('fs')
 const path = require('path')
+const AsyncLogger = require('../../lib/logger')
 const { validateTitle, validateDescription, validateRejectionNotes } = require('../../lib/validate')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -12,6 +13,7 @@ const BOT_LOG = path.join(LOGS_DIR, 'telegram-bot.log')
 
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
 
+const logger = new AsyncLogger(BOT_LOG)
 const db = new Database('/opt/claude-agent/tasks.db')
 db.exec(`CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,9 +46,7 @@ for (const m of MIGRATIONS) { try { db.exec(m) } catch(e) {} }
 const pendingRejection = {}
 
 function log(msg) {
-  const line = '[' + new Date().toISOString() + '] ' + msg + '\n'
-  console.log(line.trim())
-  fs.appendFileSync(BOT_LOG, line)
+  logger.log(msg)
 }
 
 bot.use((ctx, next) => {
