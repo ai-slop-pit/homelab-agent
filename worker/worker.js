@@ -145,9 +145,6 @@ async function planTask(task) {
   try {
     const { result: plan } = await runClaude(prompt, { addDir: '/opt/claude-agent' })
     const planTimeMs = Date.now() - planStartTime
-    incrementMetric('tasks_planned')
-    incrementMetric('total_plan_time_ms', planTimeMs)
-    incrementMetric('plan_count')
 
     const title = task.title || task.description.substring(0, 80)
     const topicId = await createTopic('📋 ' + title)
@@ -162,13 +159,20 @@ async function planTask(task) {
       ]]}
     })
 
-    db.prepare(
-      'UPDATE tasks SET status=?, plan=?, tg_topic_id=?, rejection_notes=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?'
-    ).run('awaiting_approval', plan, topicId, task.id)
+    withTx(db, () => {
+      incrementMetric('tasks_planned')
+      incrementMetric('total_plan_time_ms', planTimeMs)
+      incrementMetric('plan_count')
+      db.prepare(
+        'UPDATE tasks SET status=?, plan=?, tg_topic_id=?, rejection_notes=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?'
+      ).run('awaiting_approval', plan, topicId, task.id)
+    })
     log('Task #' + task.id + ' awaiting approval')
   } catch(e) {
     log('Planning failed #' + task.id + ': ' + e.message)
-    db.prepare("UPDATE tasks SET status='backlog', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(task.id)
+    withTx(db, () => {
+      db.prepare("UPDATE tasks SET status='backlog', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(task.id)
+    })
   }
 }
 
@@ -218,7 +222,9 @@ async function implementTask(task) {
   if (!topicId && task.type === 'improvement') {
     const title = task.title || task.description.substring(0, 80)
     topicId = await createTopic('⚡ ' + title)
-    if (topicId) db.prepare('UPDATE tasks SET tg_topic_id=? WHERE id=?').run(topicId, task.id)
+    if (topicId) withTx(db, () => {
+      db.prepare('UPDATE tasks SET tg_topic_id=? WHERE id=?').run(topicId, task.id)
+    })
     if (topicId) await topicMsg(topicId, '@Audrius 🤖 *Auto-executing improvement*\n\n' + (task.plan || 'No plan'), 'Markdown')
   }
 
@@ -240,13 +246,17 @@ async function implementTask(task) {
     const commit = commitChanges(task.id, task.title || task.description.substring(0, 80), task.significance === 'high')
     const finalResult = commit ? `Commit: ${commit.hash}\nURL: ${commit.url || 'no-github-link'}\n\n${result}` : result
 
-    db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(finalResult, task.id)
-    incrementMetric('tasks_completed')
+    withTx(db, () => {
+      db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(finalResult, task.id)
+      incrementMetric('tasks_completed')
+    })
     if (topicId) { await topicMsg(topicId, '@Audrius ✅ *Done*\n\n' + finalResult.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
     log('Task #' + task.id + ' done')
   } catch(e) {
-    db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(e.message, task.id)
-    incrementMetric('tasks_failed')
+    withTx(db, () => {
+      db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(e.message, task.id)
+      incrementMetric('tasks_failed')
+    })
     if (topicId) await topicMsg(topicId, '@Audrius ❌ Failed: ' + e.message)
     log('Task #' + task.id + ' failed: ' + e.message)
   }
@@ -265,20 +275,24 @@ async function chatTask(task) {
   try {
     const { result, sessionId } = await runClaude(task.description, { resume: task.session_id || undefined })
     clearInterval(typingInterval)
-    db.prepare("UPDATE tasks SET status='done', result=?, session_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(result, sessionId, task.id)
     if (task.thinking_msg_id) await deleteMsg(task.chat_id, task.thinking_msg_id)
     let lastMsgId = null
     for (const chunk of (result.match(/[\s\S]{1,4000}/g) || ['(no response)'])) {
       try { lastMsgId = await sendMsg(task.chat_id, chunk, { parse_mode: 'Markdown' }) }
       catch(e) { lastMsgId = await sendMsg(task.chat_id, chunk) }
     }
-    if (lastMsgId && sessionId)
-      db.prepare('UPDATE tasks SET tg_message_id=? WHERE id=?').run(String(lastMsgId), task.id)
+    withTx(db, () => {
+      db.prepare("UPDATE tasks SET status='done', result=?, session_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(result, sessionId, task.id)
+      if (lastMsgId && sessionId)
+        db.prepare('UPDATE tasks SET tg_message_id=? WHERE id=?').run(String(lastMsgId), task.id)
+    })
     log('Chat #' + task.id + ' done')
     reflect(task.description, result).catch(() => {})
   } catch(err) {
     clearInterval(typingInterval)
-    db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(err.message, task.id)
+    withTx(db, () => {
+      db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(err.message, task.id)
+    })
     if (task.thinking_msg_id) await deleteMsg(task.chat_id, task.thinking_msg_id)
     await sendMsg(task.chat_id, 'Sorry, something went wrong: ' + err.message)
     log('Chat #' + task.id + ' failed: ' + err.message)

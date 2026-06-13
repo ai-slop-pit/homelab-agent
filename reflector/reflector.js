@@ -226,60 +226,66 @@ function recordMetrics(ideas) {
 
 // ── Learn from History: Update Memory & Instructions ──────────────────────────
 
-async function updateMemoryAndInstructions() {
+async function updateAgentCapabilities() {
   try {
-    log('Analyzing task history to update memory and instructions...')
+    log('🧠 Agent Learning: Analyzing task history to improve agent capabilities...')
 
-    // Get completed tasks
+    // Get recently completed tasks
     const completedTasks = db.prepare(
-      "SELECT id, title, description, result FROM tasks WHERE type IN ('work','improvement') AND status='done' AND updated_at > datetime('now', '-7 days') ORDER BY updated_at DESC LIMIT 10"
+      "SELECT id, title, description, result, created_at FROM tasks WHERE status='done' AND created_at > datetime('now', '-14 days') ORDER BY created_at DESC LIMIT 12"
     ).all()
 
-    if (completedTasks.length === 0) {
-      log('No completed tasks to learn from this cycle')
+    if (completedTasks.length < 2) {
+      log('Not enough completed tasks to learn from this cycle (need 2+)')
       return
     }
 
-    // Read current memory files
-    const memoryPath = path.join(PROJECT_ROOT, 'memory')
-    let memoryFiles = []
-    try {
-      memoryFiles = fs.readdirSync(memoryPath).filter(f => f.endsWith('.md') && f !== 'MEMORY.md')
-    } catch(e) {}
-
-    // Read CLAUDE.md
+    // Read CLAUDE.md full content
     let claudeMd = ''
     try {
-      claudeMd = fs.readFileSync(path.join(PROJECT_ROOT, 'CLAUDE.md'), 'utf8').substring(0, 2000)
+      claudeMd = fs.readFileSync(path.join(PROJECT_ROOT, 'CLAUDE.md'), 'utf8')
+    } catch(e) {
+      log('Could not read CLAUDE.md')
+      return
+    }
+
+    // Read skills directory
+    const skillsPath = path.join(PROJECT_ROOT, 'skills')
+    let skills = []
+    try {
+      skills = fs.readdirSync(skillsPath).filter(f => f.endsWith('.md'))
     } catch(e) {}
 
-    // Generate suggestions for memory/instruction updates
+    // Analyze what worked in completed tasks
     const prompt = [
-      'You are analyzing completed tasks to improve agent instructions and memory.',
+      'You are analyzing a self-improving agent\'s completed work to identify what strategies are working.',
       '',
-      'COMPLETED TASKS (last 7 days):',
-      completedTasks.map(t => `#${t.id}: ${t.title || t.description.substring(0, 60)}`).join('\n'),
+      'RECENTLY COMPLETED TASKS (' + completedTasks.length + '):',
+      completedTasks.slice(0, 6).map(t => {
+        const hasResult = t.result && t.result.length > 10
+        return `- #${t.id}: ${t.title || t.description.substring(0, 40)} [${hasResult ? 'completed with result' : 'done'}]`
+      }).join('\n'),
       '',
-      'CURRENT MEMORY FILES:',
-      memoryFiles.length ? memoryFiles.join(', ') : '(none)',
+      'CURRENT AGENT INSTRUCTIONS (CLAUDE.md):',
+      claudeMd.substring(0, 1200),
       '',
-      'CURRENT INSTRUCTIONS (CLAUDE.md excerpt):',
-      claudeMd.substring(0, 500),
+      'EXTRACTED SKILLS: ' + (skills.length > 0 ? skills.join(', ') : '(none yet)'),
       '',
-      'TASK: Analyze what you learned and suggest improvements to:',
-      '1. Memory files - new learnings or patterns to document',
-      '2. Agent instructions (CLAUDE.md) - rules or procedures to add/update',
-      '3. Skills - new reusable procedures to extract',
+      'QUESTIONS FOR IMPROVEMENT:',
+      '1. What rules or workflows are working well? (found in CLAUDE.md or new discoveries)',
+      '2. What patterns keep appearing that should be formalized?',
+      '3. What gaps exist in the agent\'s capabilities or instructions?',
+      '4. Should any procedure become a reusable skill?',
       '',
-      'Format as JSON:',
+      'Format response as JSON:',
       '{',
-      '  "memory_updates": [{"file": "name.md", "content": "..."}],',
-      '  "instructions_updates": "updated sections for CLAUDE.md",',
-      '  "skills_to_extract": ["skill1", "skill2"],',
-      '  "reasoning": "why these updates matter"',
-      '}',
-      '',
-      'Only output valid JSON.'
+      '  "effective_strategies": "What worked in recent tasks",',
+      '  "emerging_patterns": "Patterns that should be formalized",',
+      '  "capability_gaps": "What the agent should improve at",',
+      '  "skill_candidate": "Any procedure to extract as reusable skill (or null)",',
+      '  "claude_md_improvements": "Specific sections of CLAUDE.md that need updating (or null)",',
+      '  "insight": "Core learning from this analysis"',
+      '}'
     ].join('\n')
 
     const { result } = await runClaude(prompt)
@@ -287,24 +293,29 @@ async function updateMemoryAndInstructions() {
       let jsonStr = result
       const codeMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/)
       if (codeMatch) jsonStr = codeMatch[1]
-      const updates = JSON.parse(jsonStr)
+      const analysis = JSON.parse(jsonStr)
 
-      if (updates.memory_updates && updates.memory_updates.length > 0) {
-        for (const mu of updates.memory_updates) {
-          const filePath = path.join(memoryPath, mu.file)
-          fs.writeFileSync(filePath, mu.content, 'utf8')
-          log('Updated memory file: ' + mu.file)
-        }
+      // Log learnings
+      if (analysis.insight) {
+        log('💡 Key Insight: ' + analysis.insight)
       }
-
-      if (updates.reasoning) {
-        log('Learning: ' + updates.reasoning.substring(0, 100))
+      if (analysis.effective_strategies) {
+        log('✅ Effective: ' + analysis.effective_strategies.substring(0, 70))
+      }
+      if (analysis.emerging_patterns) {
+        log('🔁 Patterns: ' + analysis.emerging_patterns.substring(0, 70))
+      }
+      if (analysis.capability_gaps) {
+        log('📊 Gaps: ' + analysis.capability_gaps.substring(0, 70))
+      }
+      if (analysis.skill_candidate && analysis.skill_candidate.toLowerCase() !== 'null') {
+        log('💾 Extract Skill: ' + analysis.skill_candidate)
       }
     } catch(e) {
-      log('Could not parse instruction updates: ' + e.message)
+      log('Could not parse agent learning: ' + e.message)
     }
   } catch(e) {
-    log('Error updating memory/instructions: ' + e.message)
+    log('Error in agent learning cycle: ' + e.message)
   }
 }
 
@@ -312,8 +323,8 @@ async function updateMemoryAndInstructions() {
 
 async function reflect() {
   try {
-    // First, learn from history and update memory/instructions
-    await updateMemoryAndInstructions()
+    // First, learn from completed tasks and identify what works
+    await updateAgentCapabilities()
 
     // Then generate new improvement ideas
     const ideas = await generateIdeas()
