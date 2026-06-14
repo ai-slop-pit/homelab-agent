@@ -2,6 +2,7 @@ require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { Telegraf } = require('telegraf')
 const fs = require('fs')
 const path = require('path')
+const http = require('http')
 const AsyncLogger = require('../../lib/logger')
 const { getDatabase } = require('../../lib/db')
 
@@ -37,6 +38,25 @@ bot.command('tasks', (ctx) => {
   ).all()
   if (!rows.length) return ctx.reply('No tasks yet.')
   ctx.reply(rows.map(t => '#' + t.id + ' [' + t.status + '] [' + (t.type || 'chat') + '] ' + t.label).join('\n'))
+})
+
+bot.command('health', async (ctx) => {
+  try {
+    const response = await new Promise((resolve, reject) => {
+      http.get('http://localhost:3001/health', (res) => {
+        let data = ''
+        res.on('data', chunk => data += chunk)
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)) } catch(e) { reject(e) }
+        })
+      }).on('error', reject)
+    })
+    const msg = `✅ *Worker Health*\nStatus: ${response.status}\nQueue: ${response.queue_length} items\nUptime: ${Math.floor(response.uptime_ms / 1000)}s\nLast task: ${response.last_task_time ? new Date(response.last_task_time).toLocaleString() : 'none'}`
+    ctx.reply(msg, { parse_mode: 'Markdown' })
+  } catch (err) {
+    log('ERROR in health handler: ' + err.message)
+    ctx.reply('❌ Worker health check failed: ' + err.message)
+  }
 })
 
 bot.command('work', async (ctx) => {
