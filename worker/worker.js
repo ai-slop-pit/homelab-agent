@@ -344,6 +344,7 @@ async function chatTask(task) {
 
 function recoverStuck() {
   const cutoff = new Date(Date.now() - PLANNING_TIMEOUT_MS).toISOString()
+  // Utilizes idx_tasks_type_status composite index for (type='work', status='planning') filter
   const n = db.prepare(
     "UPDATE tasks SET status='backlog', updated_at=CURRENT_TIMESTAMP WHERE type='work' AND status='planning' AND updated_at < ?"
   ).run(cutoff).changes
@@ -353,6 +354,8 @@ function recoverStuck() {
 async function poll() {
   try {
     recoverStuck()
+    // This query benefits from idx_tasks_type_status composite index for efficient filtering
+    // on frequent (type, status) combinations used to select the next task to process
     const task = db.prepare(`
       SELECT * FROM tasks WHERE
         (type = 'chat' AND status = 'inbox')
