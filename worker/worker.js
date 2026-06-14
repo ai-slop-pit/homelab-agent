@@ -4,6 +4,7 @@ const { getDatabase, withTx } = require('../lib/db')
 const { runClaude } = require('../lib/claude-runner')
 const { execSync } = require('child_process')
 const https = require('https')
+const http = require('http')
 const path = require('path')
 const AsyncLogger = require('../lib/logger')
 
@@ -19,6 +20,35 @@ const rateLimiter = new RateLimiter()
 const logger = new AsyncLogger(WORKER_LOG)
 
 function log(msg) { logger.log(msg) }
+
+// ── Exponential backoff state ──────────────────────────────────────────────────
+const pollState = {
+  consecutiveEmpty: 0,
+  lastLogTime: Date.now(),
+  currentInterval: POLL_INTERVAL,
+  pollStartTime: Date.now()
+}
+
+// ── Health state ──────────────────────────────────────────────────────────────
+const healthState = {
+  startTime: Date.now(),
+  lastTaskTime: null
+}
+
+function calculateBackoffInterval(consecutiveEmpty) {
+  if (consecutiveEmpty < 5) return 10000
+  if (consecutiveEmpty < 10) return 30000
+  return 60000
+}
+
+function logBackoffState() {
+  const now = Date.now()
+  if (now - pollState.lastLogTime < 60000) return
+  const uptime = Math.floor((now - pollState.pollStartTime) / 1000)
+  const metrics = getMetrics()
+  log(`[backoff] uptime=${uptime}s empty=${pollState.consecutiveEmpty} interval=${pollState.currentInterval}ms polls=${metrics.poll_count || 0} found=${metrics.tasks_found_count || 0}`)
+  pollState.lastLogTime = now
+}
 
 // ── Metrics ───────────────────────────────────────────────────────────────────
 
@@ -323,7 +353,17 @@ async function poll() {
         OR (type = 'improvement' AND status = 'backlog')
       ORDER BY priority DESC, created_at ASC LIMIT 1
     `).get()
-    if (!task) return
+
+    incrementMetric('poll_count', 1)
+
+    if (!task) {
+      pollState.consecutiveEmpty++
+      return
+    }
+
+    incrementMetric('tasks_found_count', 1)
+    pollState.consecutiveEmpty = 0
+
     if (task.type === 'work') {
       if (task.status === 'backlog' || task.status === 'needs_revision') await planTask(task)
       else if (task.status === 'approved') await implementTask(task)
@@ -342,7 +382,17 @@ process.on('unhandledRejection', (reason, promise) => {
   log('UNHANDLED REJECTION: ' + (reason?.message || String(reason)))
 })
 
+async function pollLoop() {
+  await poll()
+  logBackoffState()
+  const newInterval = calculateBackoffInterval(pollState.consecutiveEmpty)
+  if (newInterval !== pollState.currentInterval) {
+    pollState.currentInterval = newInterval
+    log(`Backoff interval changed to ${newInterval}ms (empty count: ${pollState.consecutiveEmpty})`)
+  }
+  setTimeout(pollLoop, pollState.currentInterval)
+}
+
 log('Worker started')
-poll()
-setInterval(poll, POLL_INTERVAL)
+pollLoop()
 setInterval(() => rateLimiter.cleanupOldLimiters(), 3600000) // Clean up old rate limiters every hour
