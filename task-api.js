@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '/opt/claude-agent/.env' })
 const { getDatabase } = require('./lib/db')
+const { validateTaskInput, validateTitle, validateDescription } = require('./lib/validate')
 
 const db = getDatabase()
 const taskId = parseInt(process.env.CURRENT_TASK_ID)
@@ -19,13 +20,16 @@ function appendProgress(id, msg) {
 
 if (cmd === 'progress') {
   if (!taskId) { console.error('CURRENT_TASK_ID not set'); process.exit(1) }
-  const msg = args.slice(1).join(' ')
+  let msg = args.slice(1).join(' ')
   if (!msg) { console.error('Usage: task-api.js progress <message>'); process.exit(1) }
+  msg = validateTaskInput(msg)
+  if (!msg) { console.error('Message cannot be empty after validation'); process.exit(1) }
   appendProgress(taskId, msg)
   console.log('Progress: ' + msg)
 } else if (cmd === 'blocked') {
   if (!taskId) { console.error('CURRENT_TASK_ID not set'); process.exit(1) }
-  const msg = args.slice(1).join(' ')
+  let msg = args.slice(1).join(' ')
+  msg = validateTaskInput(msg)
   appendProgress(taskId, 'BLOCKED: ' + msg)
   db.prepare("UPDATE tasks SET status='blocked', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(taskId)
   console.log('Blocked: ' + msg)
@@ -36,7 +40,10 @@ if (cmd === 'progress') {
     else if (args[i] === '--description') description = args[++i] || ''
   }
   if (!title) { console.error('Usage: task-api.js create --title "X" [--description "Y"]'); process.exit(1) }
+  title = validateTitle(title)
+  if (!title) { console.error('Title cannot be empty after validation'); process.exit(1) }
   if (!description) description = title
+  else description = validateDescription(description)
   let chatId = ''
   if (taskId) {
     const parent = db.prepare('SELECT chat_id FROM tasks WHERE id=?').get(taskId)

@@ -67,3 +67,4 @@ Use this when you recognize a task type. Always check index first before reading
 - [Error Handling for Telegram](error_handling_telegram.md) — Wrapped bot.js and worker.js handlers in try-catch, added global unhandledRejection handlers
 - [Exponential Backoff Polling](exponential_backoff_polling.md) — Worker polling optimization: 10s→30s→60s backoff reduces idle CPU/DB load ~60% (commit da8285f)
 - [Database Constraints Migration](database_constraints_migration.md) — NOT NULL + CHECK constraints on tasks, normalizes invalid statuses
+- [Task API Input Validation](task_api_input_validation.md) — CLI input validation for task-api.js prevents SQL injection/data corruption (26 test cases)
