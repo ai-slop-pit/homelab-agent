@@ -81,6 +81,13 @@ function getMetrics() {
   } catch(e) { return {} }
 }
 
+function getQueueLength() {
+  try {
+    const row = db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status IN ('inbox', 'backlog', 'approved', 'awaiting_approval')").get()
+    return row ? row.count : 0
+  } catch(e) { return 0 }
+}
+
 // ── Telegram ──────────────────────────────────────────────────────────────────
 
 function tgPost(path, payload) {
@@ -276,6 +283,7 @@ async function implementTask(task) {
     const commit = commitChanges(task.id, task.title || task.description.substring(0, 80), task.significance === 'high')
     const finalResult = commit ? `Commit: ${commit.hash}\nURL: ${commit.url || 'no-github-link'}\n\n${result}` : result
 
+    healthState.lastTaskTime = Date.now()
     withTx(db, () => {
       db.prepare("UPDATE tasks SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(finalResult, task.id)
       incrementMetric('tasks_completed')
@@ -283,6 +291,7 @@ async function implementTask(task) {
     if (topicId) { await topicMsg(topicId, '@Audrius ✅ *Done*\n\n' + finalResult.substring(0, 2000), 'Markdown'); await closeTopic(topicId) }
     log('Task #' + task.id + ' done')
   } catch(e) {
+    healthState.lastTaskTime = Date.now()
     withTx(db, () => {
       db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(e.message, task.id)
       incrementMetric('tasks_failed')
@@ -311,6 +320,7 @@ async function chatTask(task) {
       try { lastMsgId = await sendMsg(task.chat_id, chunk, { parse_mode: 'Markdown' }) }
       catch(e) { lastMsgId = await sendMsg(task.chat_id, chunk) }
     }
+    healthState.lastTaskTime = Date.now()
     withTx(db, () => {
       db.prepare("UPDATE tasks SET status='done', result=?, session_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(result, sessionId, task.id)
       if (lastMsgId && sessionId)
@@ -320,6 +330,7 @@ async function chatTask(task) {
     reflect(task.description, result).catch(() => {})
   } catch(err) {
     clearInterval(typingInterval)
+    healthState.lastTaskTime = Date.now()
     withTx(db, () => {
       db.prepare("UPDATE tasks SET status='failed', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").run(err.message, task.id)
     })
@@ -377,6 +388,28 @@ async function poll() {
     log('ERROR in poll: ' + err.message)
   }
 }
+
+// ── Health endpoint ──────────────────────────────────────────────────────────
+http.createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    const now = Date.now()
+    const uptime = now - healthState.startTime
+    const response = {
+      status: 'ok',
+      timestamp: new Date(now).toISOString(),
+      queue_length: getQueueLength(),
+      uptime_ms: uptime,
+      last_task_time: healthState.lastTaskTime ? new Date(healthState.lastTaskTime).toISOString() : null
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify(response, null, 2))
+  } else {
+    res.writeHead(404)
+    res.end()
+  }
+}).listen(3001, 'localhost', () => {
+  log('Health endpoint listening on http://localhost:3001/health')
+})
 
 process.on('unhandledRejection', (reason, promise) => {
   log('UNHANDLED REJECTION: ' + (reason?.message || String(reason)))
