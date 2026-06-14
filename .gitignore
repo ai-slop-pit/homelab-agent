@@ -3,6 +3,7 @@ node_modules/
 *.log
 # Ephemeral runtime state state/
 logs/
+tasks.db
 
 # Local Claude Code overrides
 .claude/settings.local.json
